@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Symptom workspace | CareNote</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet">
+</head>
+<body>
+<nav class="navbar navbar-expand-lg site-nav"><div class="container py-2"><a class="navbar-brand brand-lockup" href="/"><span class="brand-mark">✳</span> CareNote<span class="brand-dot">.</span></a><div class="d-flex align-items-center gap-3"><a class="nav-soft d-none d-sm-inline" href="{{ url_for('dashboard') }}">Dashboard</a><a class="nav-soft d-none d-sm-inline" href="{{ url_for('report_history') }}">Report history</a><a class="nav-soft d-none d-sm-inline" href="{{ url_for('profile') }}">Profile</a><span class="user-chip">{{ current_user['email'] }}</span><form method="post" action="{{ url_for('logout') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-outline-dark btn-sm rounded-pill px-3" type="submit">Sign out</button></form></div></div></nav>
+<main class="container py-4 py-lg-5 workspace-main">
+{% with messages = get_flashed_messages(with_categories=true) %}{% for category, message in messages %}<div class="alert alert-{{ category }} border-0 rounded-4">{{ message }}</div>{% endfor %}{% endwith %}
+<div class="row justify-content-center"><div class="col-xl-10">
+<section class="hero-card mb-4 workspace-hero">
+<span class="eyebrow">YOUR PRIVATE WORKSPACE</span>
+<h1 class="display-6 fw-bold mt-2">Let’s organize what you’ve noticed.</h1>
+<p class="lead mb-3">Select symptoms, add context, and create a structured summary for a conversation with a qualified healthcare professional.</p>
+<div class="d-flex gap-2 flex-wrap"><span class="feature-pill">✳ Structured summary</span><span class="feature-pill">▤ PDF export</span><span class="feature-pill">⌁ Safety reminders</span></div>
+</section>
+<div class="alert alert-warning safety-banner" role="alert">
+<strong>Health information notice:</strong> This summary is for informational purposes only and cannot diagnose or rule out a condition. If symptoms are severe, sudden, or worsening, seek urgent medical help rather than waiting for a result.
+</div>
+{% if error %}<div class="alert alert-danger">{{ error }}</div>{% endif %}
+<form action="{{ url_for('edit_report', report_id=edit_id) if edit_id else url_for('analyze') }}" method="post" class="panel">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<div class="section-heading"><span class="step">01</span><div><h2 class="h4 mb-1">Select symptoms</h2><p class="text-secondary mb-0">Choose all that apply. The list is based on the dataset, with a few extra warning-sign options.</p></div></div>
+<div class="d-flex flex-column flex-md-row gap-2 my-3">
+<input id="symptomSearch" class="form-control" type="search" placeholder="Search symptoms…" aria-label="Search symptoms">
+<div class="small text-secondary align-self-md-center text-nowrap"><span id="selectedCount">0</span> selected <button type="button" id="clearSymptoms" class="btn btn-link btn-sm p-0 ms-2">Clear</button></div>
+</div>
+<div class="row g-2 mb-4" id="symptomList">
+{% for symptom in symptoms %}
+<div class="col-sm-6 col-lg-4 symptom-item" data-label="{{ symptom.label|lower }}">
+<label class="symptom-option"><input class="form-check-input" type="checkbox" name="symptoms" value="{{ symptom.key }}" {% if symptom.key in (selected_keys or []) %}checked{% endif %}><span>{{ symptom.label }}</span></label>
+</div>
+{% endfor %}
+</div>
+<hr class="soft-rule">
+<div class="section-heading mt-4"><span class="step">02</span><div><h2 class="h4 mb-1">Add context</h2><p class="text-secondary mb-0">Add context to help organize the information you want to discuss with a healthcare professional.</p></div></div>
+<div class="row g-3 mt-1">
+<div class="col-12"><label class="form-label" for="title">Report title (optional)</label><input class="form-control" id="title" name="title" maxlength="100" value="{{ report_form.title if report_form else '' }}" placeholder="e.g. Headache and fatigue notes"></div>
+<div class="col-md-6"><label class="form-label" for="duration">How long have you noticed these symptoms?</label><input class="form-control" id="duration" name="duration" maxlength="100" value="{{ report_form.duration if report_form else '' }}" placeholder="e.g. since yesterday"></div>
+<div class="col-md-6"><label class="form-label" for="severity">Self-reported overall severity</label><select class="form-select" id="severity" name="severity"><option value="unsure" {% if not report_form or report_form.severity|lower == 'unsure' %}selected{% endif %}>Not sure</option><option value="mild" {% if report_form and report_form.severity|lower == 'mild' %}selected{% endif %}>Mild</option><option value="moderate" {% if report_form and report_form.severity|lower == 'moderate' %}selected{% endif %}>Moderate</option><option value="severe" {% if report_form and report_form.severity|lower == 'severe' %}selected{% endif %}>Severe</option></select></div>
+<div class="col-12"><label class="form-label" for="notes">Optional notes</label><textarea class="form-control" id="notes" name="notes" rows="3" maxlength="1200" placeholder="Other context you want to discuss with a clinician. Do not include your name, address, phone number, or ID.">{{ report_form.notes if report_form else '' }}</textarea></div>
+</div>
+<button class="btn btn-primary btn-lg w-100 mt-4 rounded-pill" type="submit" id="submitReport">{% if edit_id %}Save report changes{% else %}Create symptom summary{% endif %} <span aria-hidden="true">→</span></button>
+<p class="small text-secondary mt-3 mb-0">Your reports are saved to your account so you can review or delete them later. Keep your account secure; reports may contain sensitive health information.</p>
+</form>
+</div></div>
+</main>
+<footer class="container text-center small text-secondary pb-4">CareNote • Informational summaries only; not a substitute for professional medical advice.</footer>
+<script>
+const search = document.getElementById("symptomSearch");
+const items = [...document.querySelectorAll(".symptom-item")];
+const count = document.getElementById("selectedCount");
+function updateCount() {
+  const selected = document.querySelectorAll('input[name="symptoms"]:checked').length;
+  count.textContent = selected;
+  const button = document.getElementById("submitReport");
+  button.innerHTML = selected ? `{{ 'Save changes' if edit_id else 'Create summary' }} with ${selected} symptom${selected === 1 ? "" : "s"} <span aria-hidden="true">→</span>` : '{{ 'Save report changes' if edit_id else 'Create symptom summary' }} <span aria-hidden="true">→</span>'; 
+}
+const clearButton = document.getElementById("clearSymptoms");
+if (clearButton) clearButton.addEventListener("click", () => { document.querySelectorAll('input[name="symptoms"]:checked').forEach(input => input.checked = false); updateCount(); });
+search.addEventListener("input", () => {
+  const q = search.value.toLowerCase().trim();
+  items.forEach(item => item.hidden = !item.dataset.label.includes(q));
+});
+document.querySelectorAll('input[name="symptoms"]').forEach(input => input.addEventListener("change", updateCount));
+</script>
+</body></html>

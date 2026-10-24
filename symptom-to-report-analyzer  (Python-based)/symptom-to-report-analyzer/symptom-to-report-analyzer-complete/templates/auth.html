@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>
+      {% if mode == 'register' %}Create account{% elif mode == 'forgot' %}Reset
+      password{% elif mode == 'reset' %}Choose a new password{% else %}Sign in{%
+      endif %} | CareNote
+    </title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="{{ url_for('static', filename='style.css') }}"
+      rel="stylesheet"
+    />
+  </head>
+  <body class="auth-body">
+    <a class="auth-back" href="/">← <span>Back to CareNote</span></a>
+    <main class="auth-layout">
+      <section class="auth-aside">
+        <a class="navbar-brand brand-lockup text-white" href="/"
+          ><span class="brand-mark">✳</span> CareNote<span class="brand-dot"
+            >.</span
+          ></a
+        >
+        <div class="auth-aside-copy">
+          <span class="hero-kicker light-kicker">YOUR NOTES, IN ONE PLACE</span>
+          <h1>A little more clarity for your next care conversation.</h1>
+          <p>
+            Keep your workflow organized, create structured summaries, and
+            export a report when you need one.
+          </p>
+          <div class="auth-mini-list">
+            <span>✓ Passwords are securely hashed</span
+            ><span>✓ Reports are tied to your account</span
+            ><span>✓ You control report deletion and export</span>
+          </div>
+        </div>
+        <div class="auth-aside-foot">
+          Health information is for general guidance only
+        </div>
+      </section>
+      <section class="auth-main">
+        <div class="auth-card">
+          <div class="auth-mobile-brand">
+            <span class="brand-mark">✳</span> CareNote<span class="brand-dot"
+              >.</span
+            >
+          </div>
+          <span class="eyebrow"
+            >{% if mode == 'register' %}GET STARTED{% elif mode == 'forgot'
+            %}ACCOUNT RECOVERY{% elif mode == 'reset' %}SECURE YOUR ACCOUNT{%
+            else %}WELCOME BACK{% endif %}</span
+          >
+          <h2>
+            {% if mode == 'register' %}Create your account{% elif mode ==
+            'forgot' %}Reset your password{% elif mode == 'reset' %}Choose a new
+            password{% else %}Sign in to your workspace{% endif %}
+          </h2>
+          <p class="auth-subtitle">
+            {% if mode == 'register' %}A few details and you’re ready to go.{%
+            elif mode == 'forgot' %}If an account matches, we’ll send a
+            time-limited reset link.{% elif mode == 'reset' %}Choose a new
+            password to secure your account.{% else %}Pick up where your
+            workflow starts.{% endif %}
+          </p>
+          {% with messages = get_flashed_messages(with_categories=true) %}{% for
+          category, message in messages %}
+          <div class="alert alert-{{ category }} py-2 small">{{ message }}</div>
+          {% endfor %}{% endwith %}
+          <form method="post">
+            <input
+              type="hidden"
+              name="csrf_token"
+              value="{{ csrf_token() }}"
+            />{% if mode == 'register' or mode == 'login' or mode == 'forgot'
+            %}<label class="form-label" for="email">Email address</label
+            ><input
+              class="form-control auth-input"
+              id="email"
+              name="email"
+              type="email"
+              autocomplete="email"
+              maxlength="254"
+              placeholder="you@example.com"
+              required
+              value="{{ request.form.get('email', '') }}"
+            />{% endif %}{% if mode == 'register' or mode == 'login' %}<label
+              class="form-label mt-3"
+              for="password"
+              >Password</label
+            ><input
+              class="form-control auth-input"
+              id="password"
+              name="password"
+              type="password"
+              autocomplete="{% if mode == 'register' %}new-password{% else %}current-password{% endif %}"
+              required
+              {% if mode == 'register' %}minlength="10"{% endif %}
+              placeholder="{% if mode == 'register' %}At least 10 characters{% else %}Enter your password{% endif %}"
+            />{% endif %}{% if mode == 'register' or mode == 'reset' %}<label
+              class="form-label mt-3"
+              for="confirm_password"
+              >Confirm password</label
+            ><input
+              class="form-control auth-input"
+              id="confirm_password"
+              name="confirm_password"
+              type="password"
+              autocomplete="new-password"
+              minlength="10"
+              required
+              placeholder="Repeat your password"
+            />{% endif %}{% if mode == 'reset' %}<label
+              class="form-label"
+              for="password"
+              >New password</label
+            ><input
+              class="form-control auth-input"
+              id="password"
+              name="password"
+              type="password"
+              autocomplete="new-password"
+              minlength="10"
+              required
+              placeholder="At least 10 characters"
+            />{% endif %}<button
+              class="btn btn-brand btn-lg w-100 rounded-pill mt-4"
+              type="submit"
+            >
+              {% if mode == 'register' %}Create account{% elif mode == 'forgot'
+              %}Send reset link{% elif mode == 'reset' %}Update password{% else
+              %}Sign in{% endif %} <span class="ms-2">→</span>
+            </button>
+          </form>
+          <div class="auth-switch">
+            {% if mode == 'register' %}Already have an account?
+            <a href="{{ url_for('login') }}">Sign in</a>{% elif mode == 'forgot'
+            %}Remembered your password?
+            <a href="{{ url_for('login') }}">Sign in</a>{% elif mode == 'reset'
+            %}<a href="{{ url_for('login') }}">Return to sign in</a>{% else
+            %}New to CareNote?
+            <a href="{{ url_for('register') }}">Create an account</a><br /><a
+              href="{{ url_for('forgot_password') }}"
+              >Forgot password?</a
+            >{% endif %}
+          </div>
+          <p class="auth-privacy">
+            Please don’t include identifying details in symptom notes. This tool
+            does not replace professional medical advice.
+          </p>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

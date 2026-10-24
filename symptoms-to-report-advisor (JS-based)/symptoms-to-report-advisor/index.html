@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Symptoms to Report Advisor</title>
+  <meta name="description" content="Organise your symptoms into a clear report for a healthcare professional and learn when to seek urgent care. Free student demonstration project.">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to main content</a>
+
+  <!-- Always visible: emergency care must never wait for this form -->
+  <div class="emergency-strip" role="note">
+    <strong>In an emergency, call your local emergency number now</strong>
+    (112 in India, 911 in the US, 999 in the UK). Do not wait to finish this form.
+  </div>
+
+  <header class="site-header">
+    <div class="container header-row">
+      <button class="brand" type="button" data-view="home" aria-label="Symptoms to Report Advisor, go to home page">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span class="brand-name">Symptoms to Report Advisor</span>
+      </button>
+      <nav aria-label="Main">
+        <ul class="nav-list">
+          <li><button type="button" class="nav-link" data-view="home">Home</button></li>
+          <li><button type="button" class="nav-link" data-scroll="how-it-works">How it works</button></li>
+          <li><button type="button" class="nav-link" data-view="guide">Safety guide</button></li>
+          <li><button type="button" class="nav-link nav-cta" data-view="assessment">Assessment</button></li>
+        </ul>
+      </nav>
+      <div class="text-size" role="group" aria-label="Text size">
+        <button type="button" data-size="100" aria-pressed="true" aria-label="Normal text size">A</button>
+        <button type="button" data-size="115" aria-pressed="false" aria-label="Larger text size">A+</button>
+        <button type="button" data-size="130" aria-pressed="false" aria-label="Largest text size">A++</button>
+      </div>
+    </div>
+  </header>
+
+  <main id="main">
+
+    <!-- ===================== HOME ===================== -->
+    <section id="view-home" class="view" aria-labelledby="home-title">
+      <div class="hero">
+        <div class="container hero-grid">
+          <div class="hero-copy">
+            <h1 id="home-title" tabindex="-1">Turn your symptoms into a clear report for your healthcare professional</h1>
+            <p class="lead">Describe how you feel, or pick from a list. A safety check runs first, then you get a printable report, questions to ask, and general guidance on when to seek care. Free to use, no account, nothing saved.</p>
+            <p><button type="button" class="btn btn-primary btn-large" data-view="assessment">Start Symptom Assessment</button></p>
+            <div class="notice notice-safety">
+              <strong>Medical safety notice.</strong>
+              This tool does not diagnose illness and is not a substitute for a doctor. It cannot tell you that you are safe. If you think you may be having an emergency, call your local emergency number straight away.
+            </div>
+          </div>
+
+          <figure class="sample" aria-label="Example of a finished report">
+            <figcaption>Example report, made-up data</figcaption>
+            <div class="sample-card">
+              <ol class="ladder" aria-hidden="true">
+                <li class="is-monitor">Monitor</li>
+                <li class="is-soon" aria-current="true">Soon</li>
+                <li class="is-urgent">Urgent</li>
+                <li class="is-emergency">Emergency</li>
+              </ol>
+              <dl class="facts">
+                <div class="fact"><dt>Symptoms</dt><dd>Fever, cough, fatigue</dd></div>
+                <div class="fact"><dt>Duration</dt><dd>4 to 7 days</dd></div>
+                <div class="fact"><dt>Severity</dt><dd>Moderate, not getting worse</dd></div>
+                <div class="fact"><dt>Guidance</dt><dd>Arrange an appointment in the next few days</dd></div>
+                <div class="fact"><dt>To ask</dt><dd>How should I monitor my temperature, and what reading should make me contact you?</dd></div>
+              </dl>
+            </div>
+          </figure>
+        </div>
+      </div>
+
+      <div class="container section">
+        <h2>What you can do here</h2>
+        <ul class="feature-grid">
+          <li><h3>Smart Fill</h3><p>Type how you feel in your own words and the form fills itself in. It runs in your browser, so it is free and works offline.</p></li>
+          <li><h3>Emergency check first</h3><p>Warning signs are checked before anything else, and an alert appears the moment you tick one.</p></li>
+          <li><h3>Explainable guidance</h3><p>Four levels, from Monitor to Emergency. Every rule that applied is listed in your report.</p></li>
+          <li><h3>Appointment-ready report</h3><p>Summary, questions to ask, what to bring and space for notes. Print it, save it as a PDF, copy it or download it as text.</p></li>
+          <li><h3>23 symptoms with details</h3><p>Search or browse by body area, then add optional details such as where the pain is or how often you vomited.</p></li>
+          <li><h3>Optional AI wording</h3><p>If the site owner switches it on, an AI can polish the wording of your summary. The safety rules never depend on it.</p></li>
+        </ul>
+      </div>
+
+      <div class="container section" id="how-it-works" tabindex="-1">
+        <h2>How it works</h2>
+        <ol class="steps">
+          <li>
+            <h3>Check for emergencies</h3>
+            <p>You are asked about emergency warning signs first. If you tick one, emergency advice appears immediately.</p>
+          </li>
+          <li>
+            <h3>Describe your symptoms</h3>
+            <p>Use Smart Fill or the list. Say how long, how severe, and whether they are getting worse.</p>
+          </li>
+          <li>
+            <h3>Get your report</h3>
+            <p>See a plain-language summary, questions for your healthcare professional, and guidance. Print it or save it as a PDF.</p>
+          </li>
+        </ol>
+      </div>
+
+      <div class="container section" id="limits" tabindex="-1">
+        <h2>Safety and privacy</h2>
+        <div class="two-col">
+          <div>
+            <h3>What this tool does</h3>
+            <ul class="plain-list">
+              <li>Organises what you tell it into a readable report.</li>
+              <li>Suggests questions you may want to ask.</li>
+              <li>Gives general guidance on how soon to seek care, using fixed, visible rules.</li>
+            </ul>
+            <h3>What it does not do</h3>
+            <ul class="plain-list">
+              <li>Diagnose any condition or suggest medicines.</li>
+              <li>Replace a doctor, nurse or emergency service.</li>
+              <li>Rule out an emergency. A calm result never means you are safe.</li>
+            </ul>
+          </div>
+          <div>
+            <h3>How it works inside</h3>
+            <p>The safety check is a set of hand-written if-then rules. Smart Fill uses everyday-language pattern matching. Neither is machine learning, and neither has been clinically validated. The only generative AI is the optional wording helper.</p>
+            <h3>Your privacy</h3>
+            <p>Everything runs in your browser. Nothing is saved or sent anywhere, and closing the tab clears your answers. If the optional AI checkbox appears and you tick it, your answers (without a name) are sent to the AI provider. Printing or downloading a report creates a file on your device, so keep it private.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== SAFETY GUIDE ===================== -->
+    <section id="view-guide" class="view" aria-labelledby="guide-title" hidden>
+      <div class="container guide-wrap">
+        <h1 id="guide-title" tabindex="-1">Safety guide</h1>
+        <p class="lead">What counts as an emergency, what the guidance levels mean, and exactly which rules this tool uses.</p>
+
+        <div class="guide-alert">
+          <h2>Call your local emergency number straight away if you have any of these</h2>
+          <ul id="guide-emergency" class="report-list"></ul>
+          <table class="mini-table" aria-label="Emergency numbers by country">
+            <thead><tr><th scope="col">Country</th><th scope="col">Emergency number</th></tr></thead>
+            <tbody>
+              <tr><td>India</td><td>112 (national emergency number)</td></tr>
+              <tr><td>United States, Canada</td><td>911</td></tr>
+              <tr><td>United Kingdom</td><td>999 (or 112)</td></tr>
+              <tr><td>European Union</td><td>112</td></tr>
+              <tr><td>Australia</td><td>000</td></tr>
+            </tbody>
+          </table>
+          <p class="hint">Please confirm the number for your own area. If you are in a mental health crisis in India, you can also call Tele-MANAS on 14416.</p>
+        </div>
+
+        <h2>Other signs that raise the guidance level</h2>
+        <ul id="guide-other" class="report-list"></ul>
+
+        <h2>The four guidance levels</h2>
+        <dl class="level-defs">
+          <div class="level-def level-emergency"><dt>Emergency</dt><dd>Get emergency help now. Do not wait for anything else.</dd></div>
+          <div class="level-def level-urgent"><dt>Urgent</dt><dd>Speak to a healthcare professional today.</dd></div>
+          <div class="level-def level-soon"><dt>Soon</dt><dd>Arrange an appointment in the next few days.</dd></div>
+          <div class="level-def level-monitor"><dt>Monitor</dt><dd>No rule fired. Keep watching your symptoms. This never rules out a problem.</dd></div>
+        </dl>
+
+        <h2>Every rule, in full</h2>
+        <p>The highest level that any rule reaches is the one you see. A lower level never cancels a higher one. These hand-written rules come from commonly published warning signs and are not clinically validated.</p>
+        <div class="table-scroll">
+          <table class="rules-table">
+            <thead><tr><th scope="col">Rule</th><th scope="col">Level</th><th scope="col">When it applies</th></tr></thead>
+            <tbody id="rules-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== ASSESSMENT ===================== -->
+    <section id="view-assessment" class="view" aria-labelledby="assessment-title" hidden>
+      <div class="container form-wrap">
+        <h1 id="assessment-title" tabindex="-1">Symptom assessment</h1>
+        <p class="lead">Takes about three minutes. Please do not enter your name, address or phone number.</p>
+
+        <!-- Smart Fill: free, offline, no AI model and no data sent anywhere -->
+        <section class="smartfill" aria-labelledby="smartfill-title">
+          <h2 id="smartfill-title">Smart Fill <span class="badge">Free, works offline</span></h2>
+          <p class="hint">Describe how you feel in a sentence or two, then press the button. It fills in what it can find, and you check every answer. It uses everyday-language rules in your browser, not an AI model, and sends nothing anywhere. It never answers the emergency check for you.</p>
+          <label for="narrative" class="sub-label">In your own words</label>
+          <textarea id="narrative" rows="3" maxlength="600" placeholder="For example: fever and dry cough for 5 days, very tired, getting worse"></textarea>
+          <div class="smartfill-actions">
+            <button type="button" class="btn btn-primary" id="smartfill-btn">Fill the form for me</button>
+            <button type="button" class="btn btn-secondary" id="example-btn">Try an example</button>
+          </div>
+          <div id="smartfill-result" class="smartfill-result" role="status" hidden></div>
+        </section>
+
+        <form id="assessment-form" novalidate>
+          <div id="live-alert" class="live-alert" role="alert" hidden></div>
+          <div id="error-summary" class="error-summary" tabindex="-1" role="alert" hidden></div>
+
+          <div class="progress">
+            <label for="progress-bar" id="progress-text">Required answers: 0 of 5</label>
+            <progress id="progress-bar" max="5" value="0"></progress>
+          </div>
+
+          <!-- 1. Emergency check -->
+          <fieldset class="field-group warning-group" id="group-warnings">
+            <legend>1. Emergency check: is any of this happening right now?</legend>
+            <p class="hint">Tick everything that applies. If you tick a warning sign, emergency advice appears straight away.</p>
+            <div id="emergency-options" class="choice-grid one-col"></div>
+            <div class="choice-grid one-col warning-answers"></div>
+            <p class="field-error" id="err-warnings" hidden></p>
+          </fieldset>
+
+          <!-- 2. Who and age -->
+          <fieldset class="field-group" id="group-forWhom">
+            <legend>2. Who are the symptoms for? <span class="optional">(optional)</span></legend>
+            <div id="whofor-options" class="choice-grid"></div>
+            <p class="field-error" id="err-forWhom" hidden></p>
+            <div id="group-ageGroup" class="sub-field">
+              <label for="ageGroup" class="sub-label">Age group <span class="optional">(optional)</span></label>
+              <p class="hint" id="hint-ageGroup">Some rules, such as for very young babies, use age. Answer for the person with the symptoms.</p>
+              <select id="ageGroup" name="ageGroup" aria-describedby="hint-ageGroup err-ageGroup"></select>
+              <p class="field-error" id="err-ageGroup" hidden></p>
+            </div>
+          </fieldset>
+
+          <!-- 3. Symptoms -->
+          <fieldset class="field-group" id="group-symptoms">
+            <legend>3. Symptoms</legend>
+            <p class="hint">Choose all that apply, or search for one.</p>
+            <label for="symptom-search" class="sub-label">Find a symptom</label>
+            <input type="search" id="symptom-search" autocomplete="off" placeholder="For example: cough" aria-describedby="symptom-count">
+            <p class="hint" id="symptom-count" role="status"></p>
+            <div id="symptom-options"></div>
+            <label for="otherSymptoms" class="sub-label">Anything else, in your own words</label>
+            <textarea id="otherSymptoms" name="otherSymptoms" rows="2" maxlength="300" aria-describedby="hint-other err-otherSymptoms"></textarea>
+            <p class="hint" id="hint-other">Describe only what you are experiencing now. Up to 300 characters.</p>
+            <p class="field-error" id="err-symptoms" hidden></p>
+            <p class="field-error" id="err-otherSymptoms" hidden></p>
+          </fieldset>
+
+          <!-- 3b. Follow-up details -->
+          <fieldset class="field-group" id="followup-section" hidden>
+            <legend>More about your symptoms <span class="optional">(optional)</span></legend>
+            <p class="hint">These details go into your report for your healthcare professional. Skip any you are unsure about.</p>
+            <div id="followup-list"></div>
+          </fieldset>
+
+          <!-- 4. Duration -->
+          <div class="field-group" id="group-duration">
+            <label for="duration">4. How long have you had these symptoms?</label>
+            <select id="duration" name="duration" aria-describedby="err-duration"></select>
+            <p class="field-error" id="err-duration" hidden></p>
+          </div>
+
+          <!-- 5. Severity -->
+          <fieldset class="field-group" id="group-severity">
+            <legend>5. How severe are the symptoms overall?</legend>
+            <div id="severity-options" class="choice-grid one-col"></div>
+            <p class="field-error" id="err-severity" hidden></p>
+          </fieldset>
+
+          <!-- 6. Worsening -->
+          <fieldset class="field-group" id="group-worsening">
+            <legend>6. Are the symptoms getting worse?</legend>
+            <div id="worsening-options" class="choice-grid"></div>
+            <p class="field-error" id="err-worsening" hidden></p>
+          </fieldset>
+
+          <!-- 7. Additional details -->
+          <fieldset class="field-group" id="group-details">
+            <legend>7. Additional details <span class="optional">(optional)</span></legend>
+            <div class="inline-fields">
+              <div class="field-pair" id="group-temperature">
+                <label for="temperatureValue">Temperature, if measured</label>
+                <div class="temp-row">
+                  <input id="temperatureValue" name="temperatureValue" type="text" inputmode="decimal" autocomplete="off" placeholder="e.g. 38.5" aria-describedby="err-temperature">
+                  <select id="temperatureUnit" name="temperatureUnit" aria-label="Temperature unit">
+                    <option value="C">&deg;C</option>
+                    <option value="F">&deg;F</option>
+                  </select>
+                </div>
+                <p class="field-error" id="err-temperature" hidden></p>
+              </div>
+              <div class="field-pair">
+                <label for="pain">Pain, if any</label>
+                <select id="pain" name="pain"></select>
+              </div>
+            </div>
+            <label for="details" class="sub-label">Anything else a healthcare professional should know</label>
+            <textarea id="details" name="details" rows="2" maxlength="300" aria-describedby="err-details"></textarea>
+            <p class="field-error" id="err-details" hidden></p>
+          </fieldset>
+
+          <!-- 8. Other signs -->
+          <fieldset class="field-group" id="group-otherSigns">
+            <legend>8. Other signs worth mentioning <span class="optional">(optional)</span></legend>
+            <div id="other-sign-options" class="choice-grid one-col"></div>
+          </fieldset>
+
+          <!-- 9. Background -->
+          <fieldset class="field-group" id="group-background">
+            <legend>9. Background for your healthcare professional <span class="optional">(optional)</span></legend>
+            <p class="hint">Names only, no dosing advice is given. This appears in your report and goes nowhere else.</p>
+            <div class="inline-fields">
+              <div class="field-pair">
+                <label for="medicines">Medicines you take</label>
+                <input type="text" id="medicines" name="medicines" maxlength="200" autocomplete="off" aria-describedby="err-medicines">
+                <p class="field-error" id="err-medicines" hidden></p>
+              </div>
+              <div class="field-pair">
+                <label for="allergies">Allergies</label>
+                <input type="text" id="allergies" name="allergies" maxlength="200" autocomplete="off" aria-describedby="err-allergies">
+                <p class="field-error" id="err-allergies" hidden></p>
+              </div>
+              <div class="field-pair">
+                <label for="conditions">Medical conditions</label>
+                <input type="text" id="conditions" name="conditions" maxlength="200" autocomplete="off" aria-describedby="err-conditions">
+                <p class="field-error" id="err-conditions" hidden></p>
+              </div>
+            </div>
+          </fieldset>
+
+          <!-- Optional AI wording (appears only when a server with a key is running) -->
+          <div class="ai-option" id="ai-option" hidden>
+            <label class="ai-label">
+              <input type="checkbox" id="use-ai">
+              <span>Use AI to improve the wording of my report (optional)</span>
+            </label>
+            <p class="hint">This sends your answers, without any name, to an AI service through the server. Medicines, allergies and conditions are not sent. Do not type names, addresses or phone numbers in the text boxes. If the free Gemini tier is used, the provider may use requests to improve its products, so avoid real patient details. The emergency check always runs first, and AI cannot change its result.</p>
+          </div>
+
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary btn-large" id="submit-btn">Create my report</button>
+            <button type="button" class="btn btn-secondary" id="clear-btn">Clear form</button>
+          </div>
+          <p class="hint" id="status-text" role="status"></p>
+        </form>
+      </div>
+    </section>
+
+    <!-- ===================== REPORT ===================== -->
+    <section id="view-report" class="view" aria-labelledby="report-title" hidden>
+      <div class="container report-wrap">
+        <div class="report-actions no-print">
+          <button type="button" class="btn btn-primary" id="print-btn">Print / Save as PDF</button>
+          <button type="button" class="btn btn-secondary" id="copy-btn">Copy as text</button>
+          <button type="button" class="btn btn-secondary" id="download-btn">Download as text</button>
+          <button type="button" class="btn btn-secondary" id="edit-btn">Edit my answers</button>
+          <button type="button" class="btn btn-secondary" id="new-btn">Start New Assessment</button>
+        </div>
+        <p class="hint no-print" id="report-status" role="status">In the print window, choose &ldquo;Save as PDF&rdquo; as the destination to keep a copy.</p>
+
+        <article class="report-card" id="report-card">
+          <h1 id="report-title" tabindex="-1">Symptoms report</h1>
+          <p class="report-meta" id="report-meta">Prepared with Symptoms to Report Advisor, a student demonstration project.</p>
+          <div id="report-content"></div>
+        </article>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>Student demonstration project for the subject AI in Healthcare. Not a medical device. Not a substitute for professional medical advice, diagnosis or treatment.</p>
+    </div>
+  </footer>
+
+  <script src="rules.js"></script>
+  <script src="assistant.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>

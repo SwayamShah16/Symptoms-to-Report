@@ -1,0 +1,11 @@
+flowchart TD
+    A[User selects symptoms and adds context] --> B[Flask form validation]
+    B --> C[Normalize symptom keys]
+    C --> D[Random Forest baseline]
+    C --> E[Independent warning-sign rules]
+    D --> F[Educational dataset label]
+    E --> G[Safety warning or limited checklist note]
+    F --> H[Report preview]
+    G --> H
+    H --> I[ReportLab PDF generation]
+    I --> J[Download symptom summary]
