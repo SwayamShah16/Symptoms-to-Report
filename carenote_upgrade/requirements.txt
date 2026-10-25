@@ -1,0 +1,10 @@
+Flask>=3.1,<4.0
+Flask-WTF>=1.2,<2.0
+pandas>=2.2,<4.0
+numpy>=1.26,<3.0
+scikit-learn>=1.5,<2.0
+reportlab>=4.2,<5.0
+matplotlib>=3.8,<4.0
+pytest>=8.0,<9.0
+itsdangerous>=2.2,<3.0
+waitress>=3.0,<4.0

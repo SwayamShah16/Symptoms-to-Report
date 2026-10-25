@@ -1,0 +1,1 @@
+"""CareNote application modules."""
