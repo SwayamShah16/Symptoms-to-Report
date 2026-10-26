@@ -296,9 +296,62 @@ def create_app(test_config=None):
         top_symptoms=[{"label": label, "count": count, "percent": round(count / max(1, symptom_counts.most_common(1)[0][1]) * 100)} for label, count in symptom_counts.most_common(6)]
         return render_template("dashboard.html",title="Dashboard",reports=reports[:5],total=len(reports),severity_rows=severity_rows,top_symptoms=top_symptoms,model_available=get_model().available)
 
-    @app.route("/health-records", methods=["GET", "POST"])
+    HEALTH_SECTIONS = {
+        "bmi": {"title": "BMI & body measurements", "entry_type": "measurement", "kind": "bmi", "unit": "BMI", "accent": "bmi"},
+        "blood-pressure": {"title": "Blood pressure", "entry_type": "measurement", "kind": "blood_pressure", "unit": "mmHg", "accent": "blood-pressure"},
+        "temperature": {"title": "Temperature log", "entry_type": "measurement", "kind": "temperature", "unit": "°", "accent": "temperature"},
+        "pulse": {"title": "Pulse-rate tracker", "entry_type": "measurement", "kind": "pulse", "unit": "BPM", "accent": "pulse"},
+        "symptoms": {"title": "Symptom timeline", "entry_type": "symptom", "kind": None, "unit": "", "accent": "symptom"},
+        "medications": {"title": "Medication list", "entry_type": "medication", "kind": None, "unit": "", "accent": "medication"},
+        "appointments": {"title": "Appointment preparation", "entry_type": "appointment", "kind": None, "unit": "", "accent": "appointment"},
+    }
+
+    def load_health_entries(user_id):
+        with connect_db() as db:
+            rows = db.execute("SELECT id,entry_type,entry_json,recorded_at FROM health_entries WHERE user_id=? ORDER BY recorded_at DESC,id DESC", (user_id,)).fetchall()
+        items = []
+        for row in rows:
+            item = json.loads(row["entry_json"])
+            item.update(id=row["id"], entry_type=row["entry_type"], recorded_at=row["recorded_at"])
+            items.append(item)
+        return items
+
+    def section_matches(section, item):
+        cfg = HEALTH_SECTIONS[section]
+        if item.get("entry_type") != cfg["entry_type"]:
+            return False
+        return cfg["kind"] is None or item.get("kind") == cfg["kind"]
+
+    def health_display_value(section, item):
+        if section == "bmi": return f"{item.get('bmi', '—')} · {item.get('category', '')}"
+        if section == "blood-pressure": return f"{item.get('systolic', '—')}/{item.get('diastolic', '—')} mmHg"
+        if section == "temperature":
+            value, unit = item.get("value", "—"), item.get("unit", "C")
+            converted = (float(value) - 32) * 5 / 9 if unit == "F" else float(value) * 9 / 5 + 32
+            return f"{value} °{unit} (≈ {converted:.1f} °{'C' if unit == 'F' else 'F'})"
+        if section == "pulse": return f"{item.get('bpm', '—')} BPM"
+        if section == "symptoms": return item.get("symptom", "Symptom")
+        if section == "medications": return item.get("name", "Medication")
+        return "Appointment questions"
+
+    @app.get("/health-records")
     @login_required
     def health_records_page():
+        entries = load_health_entries(g.user["id"])
+        latest = {}
+        counts = {key: 0 for key in HEALTH_SECTIONS}
+        for section in HEALTH_SECTIONS:
+            matches = [item for item in entries if section_matches(section, item)]
+            counts[section] = len(matches)
+            if matches:
+                latest[section] = {"date": matches[0].get("date") or matches[0]["recorded_at"][:10], "value": health_display_value(section, matches[0])}
+        return render_template("health_records.html", title="Health records", sections=HEALTH_SECTIONS, latest=latest, counts=counts, today=datetime.now(timezone.utc).date().isoformat())
+
+    @app.route("/health-records/<section>", methods=["GET", "POST"])
+    @login_required
+    def health_record_detail(section):
+        if section not in HEALTH_SECTIONS: abort(404)
+        cfg = HEALTH_SECTIONS[section]
         if request.method == "POST":
             entry_type = request.form.get("entry_type", "")
             today = datetime.now(timezone.utc).date().isoformat()
@@ -309,56 +362,94 @@ def create_app(test_config=None):
                     return n if lo <= n <= hi else None
                 except (TypeError, ValueError): return None
             payload = None
-            if entry_type == "measurement":
-                kind = val("kind", 30); date = val("date", 10) or today
+            if section in {"bmi", "blood-pressure", "temperature", "pulse"} and entry_type == "measurement":
+                kind = cfg["kind"]; date = val("date", 10) or today
                 if kind == "bmi":
                     h, w = num("height_cm", 50, 250), num("weight_kg", 2, 500)
-                    if h and w:
+                    if h is not None and w is not None:
                         bmi = round(w / ((h / 100) ** 2), 1)
                         category = "Underweight" if bmi < 18.5 else "Healthy weight range" if bmi < 25 else "Overweight range" if bmi < 30 else "Obesity range"
-                        payload = {"kind":kind,"height_cm":h,"weight_kg":w,"bmi":bmi,"category":category,"date":date}
+                        payload = {"kind": kind, "height_cm": h, "weight_kg": w, "bmi": bmi, "category": category, "date": date}
                 elif kind == "blood_pressure":
-                    sys, dia = num("systolic",40,300), num("diastolic",20,200)
-                    if sys is not None and dia is not None: payload={"kind":kind,"systolic":sys,"diastolic":dia,"date":date}
+                    sys, dia = num("systolic", 40, 300), num("diastolic", 20, 200)
+                    if sys is not None and dia is not None and sys > dia: payload = {"kind": kind, "systolic": sys, "diastolic": dia, "date": date}
+                    elif sys is not None and dia is not None: flash("Systolic pressure is normally higher than diastolic; check the entered values.", "danger")
+                    else: flash("Enter valid systolic and diastolic readings.", "danger")
                 elif kind == "temperature":
-                    value, unit = num("temperature_value",25,122), val("temperature_unit",1).upper()
-                    if value is not None and unit in {"C","F"} and not (unit=="C" and value>50): payload={"kind":kind,"value":value,"unit":unit,"date":date}
+                    value, unit = num("temperature_value", 25, 122), val("temperature_unit", 1).upper()
+                    if value is not None and unit in {"C", "F"} and not (unit == "C" and value > 50): payload = {"kind": kind, "value": value, "unit": unit, "date": date}
                 elif kind == "pulse":
-                    bpm=num("bpm",20,300)
-                    if bpm is not None: payload={"kind":kind,"bpm":bpm,"date":date}
-                if not payload: flash("Please enter valid values for the selected measurement.", "danger")
-            elif entry_type == "symptom":
-                name=val("symptom_name",120); severity=val("symptom_severity",20); duration=val("symptom_duration",100); date=val("date",10) or today
-                if name and severity in {"Mild","Moderate","Severe","Unsure"} and duration:
-                    payload={"symptom":name,"severity":severity,"duration":duration,"date":date,"notes":val("notes",600)}
-                else: flash("Add a symptom, severity, and duration to save this timeline entry.","danger")
-            elif entry_type == "medication":
-                name=val("name",120); dosage=val("dosage",120); schedule=val("schedule",160); date=val("date",10) or today
-                if name: payload={"name":name,"dosage":dosage,"schedule":schedule,"date":date}
-                else: flash("Enter a medication name. CareNote will not recommend a dose.","danger")
-            elif entry_type == "appointment":
-                questions=val("questions",1200)
-                if questions: payload={"questions":questions,"date":today}
-                else: flash("Add at least one question for your appointment.","danger")
-            else: flash("Choose a valid record type.","danger")
+                    bpm = num("bpm", 20, 300)
+                    if bpm is not None: payload = {"kind": kind, "bpm": bpm, "date": date}
+                if not payload and kind != "blood_pressure": flash("Please enter valid values for this record.", "danger")
+            elif section == "symptoms" and entry_type == "symptom":
+                name, severity, duration = val("symptom_name", 120), val("symptom_severity", 20), val("symptom_duration", 100)
+                if name and severity in {"Mild", "Moderate", "Severe", "Unsure"} and duration:
+                    payload = {"symptom": name, "severity": severity, "duration": duration, "date": val("date", 10) or today, "notes": val("notes", 600)}
+                else: flash("Add a symptom, severity, and duration.", "danger")
+            elif section == "medications" and entry_type == "medication":
+                name = val("name", 120)
+                if name: payload = {"name": name, "dosage": val("dosage", 120), "schedule": val("schedule", 160), "date": val("date", 10) or today}
+                else: flash("Enter a medication name. CareNote does not recommend doses.", "danger")
+            elif section == "appointments" and entry_type == "appointment":
+                questions = val("questions", 1200)
+                if questions: payload = {"questions": questions, "date": val("date", 10) or today}
+                else: flash("Add at least one question for your appointment.", "danger")
             if payload:
                 with connect_db() as db:
-                    db.execute("INSERT INTO health_entries(user_id,entry_type,entry_json,recorded_at) VALUES(?,?,?,?)",(g.user["id"],entry_type,json.dumps(payload,ensure_ascii=False),utc_now()))
-                flash("Health record saved. It will be available to include in your next report.","success")
-            return redirect(url_for("health_records_page"))
-        with connect_db() as db:
-            rows=db.execute("SELECT id,entry_type,entry_json,recorded_at FROM health_entries WHERE user_id=? ORDER BY recorded_at DESC LIMIT 100",(g.user["id"],)).fetchall()
-        entries=[]
-        for row in rows:
-            item=json.loads(row["entry_json"]); item.update(id=row["id"],entry_type=row["entry_type"],recorded_at=row["recorded_at"]); entries.append(item)
-        return render_template("health_records.html",title="Health records",entries=entries,today=datetime.now(timezone.utc).date().isoformat())
+                    db.execute("INSERT INTO health_entries(user_id,entry_type,entry_json,recorded_at) VALUES(?,?,?,?)", (g.user["id"], entry_type, json.dumps(payload, ensure_ascii=False), utc_now()))
+                flash("Health record saved to your history.", "success")
+            return redirect(url_for("health_record_detail", section=section))
+
+        all_entries = load_health_entries(g.user["id"])
+        entries = [item for item in all_entries if section_matches(section, item)]
+        entries.sort(key=lambda item: (item.get("date") or item["recorded_at"][:10], item["recorded_at"]))
+        numeric_key = {"bmi": "bmi", "blood-pressure": "systolic", "temperature": "value", "pulse": "bpm"}.get(section)
+        graph_points = []
+        graph_points_secondary = []
+        if numeric_key and entries:
+            chart_entries = entries[-12:]
+            values = []
+            secondary_values = []
+            for item in chart_entries:
+                value = float(item.get(numeric_key, 0))
+                if section == "temperature" and item.get("unit") == "F": value = (value - 32) * 5 / 9
+                values.append(value)
+                if section == "blood-pressure": secondary_values.append(float(item.get("diastolic", 0)))
+            all_values = values + secondary_values
+            low, high = min(all_values), max(all_values)
+            spread = high - low or max(abs(high) * 0.1, 1)
+            for index, (item, value) in enumerate(zip(chart_entries, values)):
+                x = 35 + (index * 430 / max(1, len(chart_entries) - 1))
+                y = 155 - ((value - low) / spread) * 115
+                label = (item.get("date") or item["recorded_at"][:10])[-5:]
+                graph_points.append({"x": round(x, 1), "y": round(y, 1), "coords": f"{x:.1f},{y:.1f}", "label": label, "value": round(value, 1)})
+                if section == "blood-pressure":
+                    dvalue = secondary_values[index]
+                    dy = 155 - ((dvalue - low) / spread) * 115
+                    graph_points_secondary.append({"x": round(x, 1), "y": round(dy, 1), "coords": f"{x:.1f},{dy:.1f}", "label": label, "value": round(dvalue, 1)})
+        severity_counts = []
+        if section == "symptoms":
+            severity_counts = [{"label": label, "count": sum(1 for item in entries if item.get("severity") == label)} for label in ("Mild", "Moderate", "Severe", "Unsure")]
+        activity_counts = []
+        if section in {"symptoms", "medications", "appointments"}:
+            grouped = Counter((item.get("date") or item["recorded_at"][:10]) for item in entries)
+            activity_counts = [{"date": day, "count": count} for day, count in sorted(grouped.items())[-8:]]
+        activity_max = max([row["count"] for row in activity_counts], default=1)
+        latest = entries[-1] if entries else None
+        return render_template("health_record_detail.html", title=cfg["title"], section=section, config=cfg, entries=list(reversed(entries[-100:])), today=datetime.now(timezone.utc).date().isoformat(), graph_points=graph_points, graph_polyline=" ".join(point["coords"] for point in graph_points), graph_points_secondary=graph_points_secondary, graph_polyline_secondary=" ".join(point["coords"] for point in graph_points_secondary), severity_counts=severity_counts, activity_counts=activity_counts, activity_max=activity_max, latest=latest, latest_value=health_display_value(section, latest) if latest else None, total=len(entries))
 
     @app.post("/health-records/<int:entry_id>/delete")
     @login_required
     def delete_health_entry(entry_id):
-        with connect_db() as db: cur=db.execute("DELETE FROM health_entries WHERE id=? AND user_id=?",(entry_id,g.user["id"]))
-        if not cur.rowcount: abort(404)
-        flash("Health record deleted.","success"); return redirect(url_for("health_records_page"))
+        with connect_db() as db:
+            row = db.execute("SELECT entry_type,entry_json FROM health_entries WHERE id=? AND user_id=?", (entry_id, g.user["id"])).fetchone()
+            if row is None: abort(404)
+            item = json.loads(row["entry_json"])
+            section = next((key for key in HEALTH_SECTIONS if section_matches(key, {**item, "entry_type": row["entry_type"]})), "")
+            db.execute("DELETE FROM health_entries WHERE id=? AND user_id=?", (entry_id, g.user["id"]))
+        flash("Health record deleted.", "success")
+        return redirect(url_for("health_record_detail", section=section) if section else url_for("health_records_page"))
 
     @app.get("/new-report")
     @login_required
@@ -442,7 +533,16 @@ def create_app(test_config=None):
             else:
                 with connect_db() as db: db.execute("UPDATE users SET password_hash=? WHERE id=?",(generate_password_hash(new),g.user["id"]))
                 session.clear(); flash("Password changed. Sign in again.","success"); return redirect(url_for("login"))
-        return render_template("profile.html",title="Profile",user=g.user)
+        health_entries = load_health_entries(g.user["id"])
+        health_summary = {}
+        for section in HEALTH_SECTIONS:
+            matches = [item for item in health_entries if section_matches(section, item)]
+            if matches:
+                item = matches[0]
+                health_summary[section] = {"date": item.get("date") or item["recorded_at"][:10], "value": health_display_value(section, item), "count": len(matches)}
+            else:
+                health_summary[section] = {"date": None, "value": "No records yet", "count": 0}
+        return render_template("profile.html",title="Profile",user=g.user,health_summary=health_summary,health_sections=HEALTH_SECTIONS)
 
     @app.get("/about-model")
     def about_model():
