@@ -65,6 +65,11 @@ def create_app(test_config=None):
                 created_at TEXT NOT NULL, updated_at TEXT NOT NULL,
                 FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE)""")
             db.execute("CREATE INDEX IF NOT EXISTS idx_reports_user_created ON reports(user_id, created_at DESC)")
+            db.execute("""CREATE TABLE IF NOT EXISTS health_entries (
+                id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL,
+                entry_type TEXT NOT NULL, entry_json TEXT NOT NULL, recorded_at TEXT NOT NULL,
+                FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE)""")
+            db.execute("CREATE INDEX IF NOT EXISTS idx_health_entries_user_date ON health_entries(user_id, recorded_at DESC)")
     init_db()
 
     @app.before_request
@@ -164,11 +169,40 @@ def create_app(test_config=None):
         }
         health_records = {key: value for key, value in health_records.items() if value is not None and value != []}
         appointment_questions = form.get("appointment_questions", "").strip()[:1200]
+        # Snapshot recent saved health logs into this report so the PDF is self-contained.
+        saved_health_timeline = []
+        saved_medications = []
+        saved_questions = []
+        if g.user:
+            with connect_db() as db:
+                log_rows = db.execute("SELECT entry_type,entry_json,recorded_at FROM health_entries WHERE user_id=? ORDER BY recorded_at DESC LIMIT 50", (g.user["id"],)).fetchall()
+            for log_row in log_rows:
+                item = json.loads(log_row["entry_json"])
+                item["entry_type"] = log_row["entry_type"]
+                item["recorded_at"] = log_row["recorded_at"]
+                if log_row["entry_type"] == "symptom": saved_health_timeline.append(item)
+                elif log_row["entry_type"] == "medication": saved_medications.append(item)
+                elif log_row["entry_type"] == "appointment" and not appointment_questions: saved_questions.append(item.get("questions", ""))
+                elif log_row["entry_type"] == "measurement":
+                    kind = item.get("kind")
+                    if kind == "bmi":
+                        health_records.setdefault("height_cm", item.get("height_cm")); health_records.setdefault("weight_kg", item.get("weight_kg")); health_records.setdefault("bmi", item.get("bmi")); health_records.setdefault("bmi_category", item.get("category"))
+                    elif kind == "blood_pressure": health_records.setdefault("blood_pressure", {"systolic":item.get("systolic"),"diastolic":item.get("diastolic"),"date":item.get("date")})
+                    elif kind == "temperature": health_records.setdefault("temperature", {"value":item.get("value"),"unit":item.get("unit"),"date":item.get("date")})
+                    elif kind == "pulse": health_records.setdefault("pulse", {"bpm":item.get("bpm"),"date":item.get("date")})
+        health_records = {key: value for key, value in health_records.items() if value is not None and value != []}
+        # Keep manually entered medication details first, then include saved medication logs.
+        existing_meds = health_records.get("medications", [])
+        for item in saved_medications:
+            candidate = {"name": item.get("name", ""), "dosage": item.get("dosage", ""), "schedule": item.get("schedule", ""), "date": item.get("date", "")}
+            if candidate not in existing_meds: existing_meds.append(candidate)
+        if existing_meds: health_records["medications"] = existing_meds
+        if not appointment_questions and saved_questions: appointment_questions = "\n".join(saved_questions[:3])[:1200]
         return {"generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
                 "selected_keys": selected, "symptoms": [options[k] for k in selected], "duration": duration,
                 "severity": severity.title(), "progression": progression.replace("_", " ").title(),
                 "notes": form.get("notes", "").strip()[:1200] or "None provided", "analysis": analysis, "warning": warning,
-                "health_records": health_records, "appointment_questions": appointment_questions,
+                "health_records": health_records, "health_timeline": saved_health_timeline[:20], "appointment_questions": appointment_questions,
                 "language": g.language}, None
 
     @app.get("/")
@@ -261,6 +295,70 @@ def create_app(test_config=None):
         severity_rows=[{"label": label, "count": count, "percent": round(count / max(1, sum(severity.values())) * 100)} for label, count in severity.most_common()]
         top_symptoms=[{"label": label, "count": count, "percent": round(count / max(1, symptom_counts.most_common(1)[0][1]) * 100)} for label, count in symptom_counts.most_common(6)]
         return render_template("dashboard.html",title="Dashboard",reports=reports[:5],total=len(reports),severity_rows=severity_rows,top_symptoms=top_symptoms,model_available=get_model().available)
+
+    @app.route("/health-records", methods=["GET", "POST"])
+    @login_required
+    def health_records_page():
+        if request.method == "POST":
+            entry_type = request.form.get("entry_type", "")
+            today = datetime.now(timezone.utc).date().isoformat()
+            def val(name, limit=300): return request.form.get(name, "").strip()[:limit]
+            def num(name, lo, hi):
+                try:
+                    n = float(request.form.get(name, ""))
+                    return n if lo <= n <= hi else None
+                except (TypeError, ValueError): return None
+            payload = None
+            if entry_type == "measurement":
+                kind = val("kind", 30); date = val("date", 10) or today
+                if kind == "bmi":
+                    h, w = num("height_cm", 50, 250), num("weight_kg", 2, 500)
+                    if h and w:
+                        bmi = round(w / ((h / 100) ** 2), 1)
+                        category = "Underweight" if bmi < 18.5 else "Healthy weight range" if bmi < 25 else "Overweight range" if bmi < 30 else "Obesity range"
+                        payload = {"kind":kind,"height_cm":h,"weight_kg":w,"bmi":bmi,"category":category,"date":date}
+                elif kind == "blood_pressure":
+                    sys, dia = num("systolic",40,300), num("diastolic",20,200)
+                    if sys is not None and dia is not None: payload={"kind":kind,"systolic":sys,"diastolic":dia,"date":date}
+                elif kind == "temperature":
+                    value, unit = num("temperature_value",25,122), val("temperature_unit",1).upper()
+                    if value is not None and unit in {"C","F"} and not (unit=="C" and value>50): payload={"kind":kind,"value":value,"unit":unit,"date":date}
+                elif kind == "pulse":
+                    bpm=num("bpm",20,300)
+                    if bpm is not None: payload={"kind":kind,"bpm":bpm,"date":date}
+                if not payload: flash("Please enter valid values for the selected measurement.", "danger")
+            elif entry_type == "symptom":
+                name=val("symptom_name",120); severity=val("symptom_severity",20); duration=val("symptom_duration",100); date=val("date",10) or today
+                if name and severity in {"Mild","Moderate","Severe","Unsure"} and duration:
+                    payload={"symptom":name,"severity":severity,"duration":duration,"date":date,"notes":val("notes",600)}
+                else: flash("Add a symptom, severity, and duration to save this timeline entry.","danger")
+            elif entry_type == "medication":
+                name=val("name",120); dosage=val("dosage",120); schedule=val("schedule",160); date=val("date",10) or today
+                if name: payload={"name":name,"dosage":dosage,"schedule":schedule,"date":date}
+                else: flash("Enter a medication name. CareNote will not recommend a dose.","danger")
+            elif entry_type == "appointment":
+                questions=val("questions",1200)
+                if questions: payload={"questions":questions,"date":today}
+                else: flash("Add at least one question for your appointment.","danger")
+            else: flash("Choose a valid record type.","danger")
+            if payload:
+                with connect_db() as db:
+                    db.execute("INSERT INTO health_entries(user_id,entry_type,entry_json,recorded_at) VALUES(?,?,?,?)",(g.user["id"],entry_type,json.dumps(payload,ensure_ascii=False),utc_now()))
+                flash("Health record saved. It will be available to include in your next report.","success")
+            return redirect(url_for("health_records_page"))
+        with connect_db() as db:
+            rows=db.execute("SELECT id,entry_type,entry_json,recorded_at FROM health_entries WHERE user_id=? ORDER BY recorded_at DESC LIMIT 100",(g.user["id"],)).fetchall()
+        entries=[]
+        for row in rows:
+            item=json.loads(row["entry_json"]); item.update(id=row["id"],entry_type=row["entry_type"],recorded_at=row["recorded_at"]); entries.append(item)
+        return render_template("health_records.html",title="Health records",entries=entries,today=datetime.now(timezone.utc).date().isoformat())
+
+    @app.post("/health-records/<int:entry_id>/delete")
+    @login_required
+    def delete_health_entry(entry_id):
+        with connect_db() as db: cur=db.execute("DELETE FROM health_entries WHERE id=? AND user_id=?",(entry_id,g.user["id"]))
+        if not cur.rowcount: abort(404)
+        flash("Health record deleted.","success"); return redirect(url_for("health_records_page"))
 
     @app.get("/new-report")
     @login_required

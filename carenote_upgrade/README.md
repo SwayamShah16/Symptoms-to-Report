@@ -6,11 +6,13 @@ CareNote is a local-first Flask educational prototype for organizing self-report
 
 - Flask authentication: registration, login/logout, password reset email flow (SMTP configuration required), password changes, and account deletion.
 - SQLite report storage, report ownership checks, report history/search, editing/deletion, JSON export, and PDF export.
+- Dedicated **Health records** page linked in the signed-in navigation and dashboard, with independently saved entries for BMI, blood pressure, temperature conversion/logging, pulse rate, symptom timeline, medication list, and appointment-preparation questions.
+- Saved health-log entries are included in the next symptom report snapshot and its PDF; users can review and delete individual health-log entries.
 - Responsive dashboard and three-step symptom intake wizard with symptom search/category filters, duration, self-reported severity, and progression.
 - Local scikit-learn Random Forest trained from `data/dataset.csv`; no external AI API.
 - Independent, deliberately incomplete warning-sign checklist.
 - Model transparency page with dataset status and held-out accuracy/macro-F1.
-- English/Hindi/Marathi navigation labels (partial UI localization, not a complete translation).
+- English/Hindi/Marathi interface localization for common page copy, navigation, forms, health-record labels, safety text, and the bundled symptom labels. User-entered notes remain in the language entered; review medical terminology with qualified translators before real-world healthcare use.
 - CSRF protection, password hashing, security headers, and a configurable secure session cookie.
 - Supplied symptom description, precaution, and severity CSVs retained in `data/` for future reviewed extensions.
 
@@ -47,7 +49,7 @@ $env:FLASK_SECRET_KEY = "replace-with-a-long-random-secret"
 python app.py
 ```
 
-Open `http://127.0.0.1:5000`. Create an account or use an account already present in the included SQLite database. Keep `instance/users.sqlite3` private; it may contain account and symptom-report data.
+Open `http://127.0.0.1:5000`. Create a new account to begin. The app creates its SQLite database automatically under `instance/` on first run. Keep `instance/users.sqlite3` private; it may contain account and symptom-report data.
 
 Run checks after installing requirements:
 
@@ -78,9 +80,9 @@ Before any deployment beyond a private local demo:
 
 Do not enter unnecessary identifiers or use this application to make medical decisions. Severe, sudden, worsening, or concerning symptoms require prompt professional assessment; a negative checklist result does not mean a person is safe.
 
-## Patient report features
+## Patient report and health records
 
-The report wizard can capture optional self-reported health details alongside the symptom timeline:
+Open **Health records** from the signed-in navigation or dashboard to save each item independently. Entries remain in the user's account and the latest saved entries are copied into the next report snapshot and PDF. The report wizard also supports optional self-reported health details:
 
 - BMI calculated from height (cm) and weight (kg), with an adult category label.
 - Blood pressure (systolic/diastolic) with a reading date.
@@ -89,6 +91,6 @@ The report wizard can capture optional self-reported health details alongside th
 - Medication list using one line per item in `name | dosage as prescribed | schedule` format.
 - Appointment-preparation questions for a clinician.
 
-Entries are saved inside each patient's own report and appear in the report detail page and PDF export. The handwritten-style interface uses Caveat when Google Fonts is reachable and system cursive fallbacks when offline. PDF typography uses ReportLab's built-in Zapf Chancery italic font.
+The details entered directly in the report wizard are saved in that report. Saved health-record entries are included in the next report snapshot and PDF export. The interface uses a readable sans-serif font stack with larger body and descriptive text, including offline system fallbacks. PDF typography uses ReportLab built-in fonts for dependable output.
 
 These are patient-entered notes, not clinical interpretation. BMI is a screening measure; the app does not diagnose, triage, interpret vital signs, or recommend medication doses.

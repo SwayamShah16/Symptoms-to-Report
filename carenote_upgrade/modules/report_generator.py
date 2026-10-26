@@ -18,10 +18,10 @@ def build_pdf(report) -> BytesIO:
         title="CareNote Symptom Summary", author="CareNote",
     )
     base = getSampleStyleSheet()
-    title_style = ParagraphStyle("CareTitle", parent=base["Title"], fontName="ZapfChancery-MediumItalic", fontSize=20, leading=25, textColor=colors.HexColor("#176b63"), alignment=TA_LEFT, spaceAfter=5*mm)
-    heading = ParagraphStyle("CareHeading", parent=base["Heading2"], fontSize=12, leading=16, textColor=colors.HexColor("#1e2b39"), spaceBefore=5*mm, spaceAfter=2*mm)
-    body = ParagraphStyle("CareBody", parent=base["BodyText"], fontSize=9, leading=13, textColor=colors.HexColor("#44515d"), spaceAfter=2*mm)
-    small = ParagraphStyle("CareSmall", parent=body, fontSize=8, leading=11, textColor=colors.HexColor("#6f7d8c"))
+    title_style = ParagraphStyle("CareTitle", parent=base["Title"], fontName="Helvetica-Bold", fontSize=21, leading=27, textColor=colors.HexColor("#176b63"), alignment=TA_LEFT, spaceAfter=5*mm)
+    heading = ParagraphStyle("CareHeading", parent=base["Heading2"], fontSize=13, leading=18, textColor=colors.HexColor("#1e2b39"), spaceBefore=5*mm, spaceAfter=2*mm)
+    body = ParagraphStyle("CareBody", parent=base["BodyText"], fontSize=10.5, leading=15, textColor=colors.HexColor("#44515d"), spaceAfter=2*mm)
+    small = ParagraphStyle("CareSmall", parent=body, fontSize=9.5, leading=13, textColor=colors.HexColor("#6f7d8c"))
     story = [Paragraph("CareNote", title_style), Paragraph("Symptom summary · Educational note, not a diagnosis", body)]
     story.append(Paragraph("What you reported", heading))
     symptoms = report.get("symptoms") or []
@@ -48,6 +48,14 @@ def build_pdf(report) -> BytesIO:
         for med in health.get("medications", []):
             entries.append(f"Medication entered: {med.get('name') or 'Name not provided'} · Dosage: {med.get('dosage') or 'Not provided'} · Schedule: {med.get('schedule') or 'Not provided'}")
         for entry in entries: story.append(Paragraph(escape(entry), body))
+    timeline = report.get("health_timeline") or []
+    if timeline:
+        story.append(Paragraph("Symptom timeline (self-reported)", heading))
+        for item in timeline:
+            line = f"{item.get('date', 'Date not provided')} · {item.get('symptom', 'Symptom not provided')} · Severity: {item.get('severity', 'Unsure')} · Duration: {item.get('duration', 'Not provided')}"
+            if item.get("notes"): line += " · Notes: " + str(item["notes"])
+            story.append(Paragraph(escape(line), body))
+    if health or timeline:
         story.append(Paragraph("These entries are user-provided records, not a clinical interpretation. BMI is a screening measure only; do not change medication based on this report.", small))
     story.append(Paragraph("Appointment preparation", heading))
     questions = str(report.get("appointment_questions") or "No questions were entered. Consider asking the clinician about symptom changes, follow-up, and appropriate next steps.")
