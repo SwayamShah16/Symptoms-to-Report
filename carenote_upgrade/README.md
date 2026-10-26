@@ -6,7 +6,7 @@ CareNote is a local-first Flask educational prototype for organizing self-report
 
 - Flask authentication: registration, login/logout, password reset email flow (SMTP configuration required), password changes, and account deletion.
 - SQLite report storage, report ownership checks, report history/search, editing/deletion, JSON export, and PDF export.
-- Dedicated **Health records** page linked in the signed-in navigation and dashboard, with independently saved entries for BMI, blood pressure, temperature conversion/logging, pulse rate, symptom timeline, medication list, and appointment-preparation questions.
+- Dedicated **Health records hub** linked in navigation and dashboard. Each of the seven trackers opens its own page: BMI, blood pressure, temperature, pulse, symptom timeline, medication list, and appointment preparation.
 - Saved health-log entries are included in the next symptom report snapshot and its PDF; users can review and delete individual health-log entries.
 - Responsive dashboard and three-step symptom intake wizard with symptom search/category filters, duration, self-reported severity, and progression.
 - Local scikit-learn Random Forest trained from `data/dataset.csv`; no external AI API.
@@ -82,7 +82,7 @@ Do not enter unnecessary identifiers or use this application to make medical dec
 
 ## Patient report and health records
 
-Open **Health records** from the signed-in navigation or dashboard to save each item independently. Entries remain in the user's account and the latest saved entries are copied into the next report snapshot and PDF. The report wizard also supports optional self-reported health details:
+Open **Health records** from the signed-in navigation or dashboard, then open any of the seven individual tracker pages. Each tracker maintains its own dated history; numeric trackers show a trend graph, symptom history shows severity and activity graphs, and medication/appointment pages show entry-frequency graphs. The profile includes the latest saved value and entry count for each tracker. Entries remain in the user's account and the latest saved entries are copied into the next report snapshot and PDF. The report wizard also supports optional self-reported health details:
 
 - BMI calculated from height (cm) and weight (kg), with an adult category label.
 - Blood pressure (systolic/diastolic) with a reading date.
