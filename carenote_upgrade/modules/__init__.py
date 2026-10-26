@@ -1,1 +1,1 @@
-"""CareNote application modules."""
+"""CareNote application support modules."""

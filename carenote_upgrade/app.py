@@ -87,7 +87,7 @@ def create_app(test_config=None):
         response.headers.setdefault("X-Frame-Options", "DENY")
         response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
         response.headers.setdefault("Cache-Control", "no-store")
-        response.headers.setdefault("Content-Security-Policy", "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; img-src 'self' data:; base-uri 'self'; frame-ancestors 'none'; form-action 'self'")
+        response.headers.setdefault("Content-Security-Policy", "default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; script-src 'self'; img-src 'self' data:; base-uri 'self'; frame-ancestors 'none'; form-action 'self'")
         return response
 
     def login_required(view):
@@ -130,10 +130,45 @@ def create_app(test_config=None):
         if progression not in {"improving", "unchanged", "worsening", "comes_goes", "unsure"}: progression = "unsure"
         analysis = get_model().predict(selected)
         warning = check_warning_signs(selected)
+
+        # Optional self-reported measurements are stored inside this report snapshot.
+        def number_field(name, minimum, maximum):
+            raw = form.get(name, "").strip()
+            if not raw:
+                return None
+            try:
+                value = float(raw)
+            except (TypeError, ValueError):
+                return None
+            return value if minimum <= value <= maximum else None
+
+        height_cm = number_field("height_cm", 50, 250)
+        weight_kg = number_field("weight_kg", 2, 500)
+        bmi = round(weight_kg / ((height_cm / 100) ** 2), 1) if height_cm and weight_kg else None
+        bp_sys = number_field("bp_systolic", 40, 300)
+        bp_dia = number_field("bp_diastolic", 20, 200)
+        temp_value = number_field("temperature_value", 25, 115)
+        temp_unit = form.get("temperature_unit", "C").upper()
+        if temp_unit not in {"C", "F"}: temp_unit = "C"
+        if temp_value is not None and temp_unit == "C" and temp_value > 50: temp_value = None
+        if temp_value is not None and temp_unit == "F" and temp_value > 122: temp_value = None
+        pulse = number_field("pulse_bpm", 20, 300)
+        today = datetime.now(timezone.utc).date().isoformat()
+        health_records = {
+            "height_cm": height_cm, "weight_kg": weight_kg, "bmi": bmi,
+            "bmi_category": ("Underweight" if bmi < 18.5 else "Healthy weight range" if bmi < 25 else "Overweight range" if bmi < 30 else "Obesity range") if bmi is not None else None,
+            "blood_pressure": {"systolic": bp_sys, "diastolic": bp_dia, "date": (form.get("bp_date", "").strip()[:10] or today)} if bp_sys is not None and bp_dia is not None else None,
+            "temperature": {"value": temp_value, "unit": temp_unit, "date": (form.get("temperature_date", "").strip()[:10] or today)} if temp_value is not None else None,
+            "pulse": {"bpm": pulse, "date": (form.get("pulse_date", "").strip()[:10] or today)} if pulse is not None else None,
+            "medications": [{"name": parts[0][:120], "dosage": parts[1][:120] if len(parts) > 1 else "", "schedule": parts[2][:160] if len(parts) > 2 else ""} for line in form.get("medication_list", "").splitlines() if line.strip() for parts in [[part.strip() for part in line.split("|")]]],
+        }
+        health_records = {key: value for key, value in health_records.items() if value is not None and value != []}
+        appointment_questions = form.get("appointment_questions", "").strip()[:1200]
         return {"generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
                 "selected_keys": selected, "symptoms": [options[k] for k in selected], "duration": duration,
                 "severity": severity.title(), "progression": progression.replace("_", " ").title(),
                 "notes": form.get("notes", "").strip()[:1200] or "None provided", "analysis": analysis, "warning": warning,
+                "health_records": health_records, "appointment_questions": appointment_questions,
                 "language": g.language}, None
 
     @app.get("/")

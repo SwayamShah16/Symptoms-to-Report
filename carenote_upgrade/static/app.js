@@ -8,6 +8,7 @@
   document.querySelectorAll('[data-i18n]').forEach(el => { const key = el.dataset.i18n; if (translations[language]?.[key]) el.textContent = translations[language][key]; });
 
   document.querySelectorAll('form[data-confirm]').forEach(form => form.addEventListener('submit', event => { if (!window.confirm(form.dataset.confirm)) event.preventDefault(); }));
+  document.getElementById('language')?.addEventListener('change', event => event.currentTarget.form?.requestSubmit());
   const form = document.getElementById('symptom-wizard');
   if (!form) return;
   const steps = [...form.querySelectorAll('[data-step]')];
@@ -48,7 +49,22 @@
   form.querySelectorAll('input[name="symptoms"]').forEach(el=>el.addEventListener('change',count));
   document.getElementById('clear-symptoms')?.addEventListener('click',()=>{form.querySelectorAll('input[name="symptoms"]').forEach(el=>el.checked=false);count();});
   search?.addEventListener('input',filterSymptoms);
-  form.querySelectorAll('[data-category]').forEach(btn=>btn.addEventListener('click',()=>{category=btn.dataset.category;form.querySelectorAll('.category-tab').forEach(b=>b.classList.toggle('active',b===btn));filterSymptoms();}));
+  form.querySelectorAll('.category-tab[data-category]').forEach(btn=>btn.addEventListener('click',()=>{category=btn.dataset.category;form.querySelectorAll('.category-tab').forEach(b=>b.classList.toggle('active',b===btn));filterSymptoms();}));
   form.addEventListener('submit',e=>{if(!selected().length){e.preventDefault();showStep(0);alert('Select at least one symptom before creating the summary.');}});
   count(); filterSymptoms(); showStep(0);
+})();
+
+// Live Celsius/Fahrenheit conversion for the health log form.
+(() => {
+  const input = document.getElementById('temperature-value');
+  const unit = document.getElementById('temperature-unit');
+  const output = document.getElementById('temperature-conversion');
+  if (!input || !unit || !output) return;
+  const update = () => {
+    const value = Number(input.value);
+    if (!input.value || !Number.isFinite(value)) { output.textContent = 'Enter a temperature to see the conversion.'; return; }
+    if (unit.value === 'C') output.textContent = `${value.toFixed(1)} °C = ${(value * 9 / 5 + 32).toFixed(1)} °F`;
+    else output.textContent = `${value.toFixed(1)} °F = ${((value - 32) * 5 / 9).toFixed(1)} °C`;
+  };
+  input.addEventListener('input', update); unit.addEventListener('change', update); update();
 })();

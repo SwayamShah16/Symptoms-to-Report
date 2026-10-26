@@ -1,22 +1,42 @@
-# CareNote — Symptom-to-Report Analyzer (upgrade scaffold)
+# CareNote — Symptom-to-Report Analyzer
 
-A local-first Flask application for organizing self-reported symptoms, keeping a private report history, exporting PDF summaries, and inspecting a local scikit-learn model's limitations. It does **not** diagnose disease or provide medical triage.
+CareNote is a local-first Flask educational prototype for organizing self-reported symptoms, saving personal notes, exporting PDF summaries, and inspecting a local scikit-learn classifier. It is **not** a diagnostic, triage, or treatment tool.
 
-## What is included
+## Included
 
-- Flask application with registration, sign-in/out, password reset email flow (SMTP configuration required), password change, and account deletion.
-- SQLite report storage with user ownership checks, report history/search, editing/deletion, JSON data export, and PDF export.
-- Responsive dashboard and a 3-step symptom intake wizard with category filters, symptom search, severity, duration, and progression.
-- Independent rule-based warning-sign screen that is not controlled by model output.
-- Local-only Random Forest wrapper and a model-transparency page with held-out accuracy, macro-F1, class counts, and dataset status when the source dataset is present.
-- Basic English/Hindi/Marathi navigation labels and language preference storage. This is partial UI localization, not a complete translation of every medical label.
-- Security headers, CSRF protection, password hashing, session cookie settings, and tests.
+- Flask authentication: registration, login/logout, password reset email flow (SMTP configuration required), password changes, and account deletion.
+- SQLite report storage, report ownership checks, report history/search, editing/deletion, JSON export, and PDF export.
+- Responsive dashboard and three-step symptom intake wizard with symptom search/category filters, duration, self-reported severity, and progression.
+- Local scikit-learn Random Forest trained from `data/dataset.csv`; no external AI API.
+- Independent, deliberately incomplete warning-sign checklist.
+- Model transparency page with dataset status and held-out accuracy/macro-F1.
+- English/Hindi/Marathi navigation labels (partial UI localization, not a complete translation).
+- CSRF protection, password hashing, security headers, and a configurable secure session cookie.
+- Supplied symptom description, precaution, and severity CSVs retained in `data/` for future reviewed extensions.
 
-## Important: original project files were missing from the supplied upload
+## Project structure
 
-The upload supplied `app.py`, `train_model.py`, `inspect_dataset.py`, `requirements.txt`, `README.md`, and `INSTALL.md`. It did not include the original `modules/`, `templates/`, `static/`, `data/`, or `tests/` folders. This package supplies new replacements for those components. Copy your original source dataset CSV into `data/dataset.csv` to enable the classifier. The intake and report generation can run without it, but the model will show as unavailable. The original four CSV files and their exact schema were not available to validate against; check the dataset target column and symptom encoding before use.
+```text
+CareNote_Upgrade/
+├── app.py
+├── modules/
+│   ├── data_pipeline.py
+│   ├── model.py
+│   ├── report_generator.py
+│   └── safety_screening.py
+├── templates/          # Jinja templates
+├── static/             # CSS and JavaScript
+├── data/               # Source CSV datasets
+├── instance/            # Local SQLite database
+├── reports/             # Generated evaluation output
+├── tests/
+├── inspect_dataset.py
+└── train_model.py
+```
 
 ## Run on Windows
+
+Use Python 3.10 or newer. From this folder, open PowerShell:
 
 ```powershell
 py -m venv .venv
@@ -27,38 +47,48 @@ $env:FLASK_SECRET_KEY = "replace-with-a-long-random-secret"
 python app.py
 ```
 
-Open `http://127.0.0.1:5000`. Create an account; use a password with at least 12 characters.
+Open `http://127.0.0.1:5000`. Create an account or use an account already present in the included SQLite database. Keep `instance/users.sqlite3` private; it may contain account and symptom-report data.
 
-Run tests:
+Run checks after installing requirements:
 
 ```powershell
 pytest -q
-```
-
-Optional dataset evaluation:
-
-```powershell
 python inspect_dataset.py
 python train_model.py
 ```
 
-The original `train_model.py` assumes the local `modules.model` wrapper. It can only evaluate if `data/dataset.csv` exists and has a target column named `disease`, `label`, or `target`, plus binary-like symptom columns. If your source CSV has a different layout, adapt `modules/data_pipeline.py` before running it.
+`train_model.py` writes a metrics snapshot to `reports/metrics.json`. Restart the Flask process after changing the CSV because the dataset/model are cached in-process.
 
-## Production configuration checklist
+## Dataset behavior
 
-1. Set `FLASK_SECRET_KEY` to a high-entropy secret stored in a secret manager; never use the development fallback.
-2. Serve behind HTTPS with a production WSGI server, such as Waitress on Windows or Gunicorn on Linux. Set `COOKIE_SECURE=1` only when HTTPS is correctly configured.
-3. Use managed PostgreSQL and encrypted backups for multi-instance production; this scaffold uses SQLite by default.
-4. Add rate limiting, security monitoring, retention policies, audit trails, backup/restore tests, dependency scanning, and a formal privacy impact assessment before public deployment.
-5. Have a qualified clinical team review the warning rules and all user-facing wording. The current rules are deliberately incomplete and are not safe for real triage.
-6. Conduct independent clinical validation, fairness testing, accessibility review, threat modelling, and legal/regulatory review before any real healthcare use.
+The supplied source CSV has a `Disease` target and `Symptom_1` through `Symptom_17` columns. The pipeline normalizes underscore/spacing variants, drops unusable rows, and removes exact duplicate disease/symptom patterns before evaluation. The supplied file currently contains 4,920 source rows, 41 target labels, 131 normalized symptoms, and 304 unique disease-pattern rows after exact-pattern deduplication.
 
-## Clinical and data limitations
+The reported metrics are a small educational benchmark only. Exact deduplication does not make this dataset representative of real clinical encounters; the model may still exploit dataset-specific patterns. A dataset label is not a diagnosis, calibrated probability, or treatment recommendation.
 
-- The application is not a medical device and must not be used for diagnosis, triage, or treatment decisions.
-- A classifier label is a label in the training dataset, not a diagnosis or calibrated probability.
-- Evaluation on a small or synthetic dataset does not establish generalization to real patients.
-- The emergency warning list is incomplete. No warning triggered does **not** mean a user is safe. Severe, sudden, worsening, or concerning symptoms warrant prompt medical assessment.
-- Do not enter names, addresses, phone numbers, government IDs, or other unnecessary identifiers. Saved symptom notes are sensitive personal data.
-- English/Hindi/Marathi support currently translates selected navigation labels only. Full translation requires reviewed medical translations.
-- Do not deploy the Flask development server as the production server.
+## Security and deployment checklist
+
+Before any deployment beyond a private local demo:
+
+1. Set a high-entropy `FLASK_SECRET_KEY` via a secret manager; do not use the development fallback.
+2. Serve through HTTPS and a production WSGI server (Waitress on Windows or Gunicorn on Linux). Set `COOKIE_SECURE=1` only when HTTPS is correctly configured.
+3. Replace SQLite with a managed production database and migrations for multi-user deployment; implement encrypted backups and restore tests.
+4. Add rate limiting, account lockout controls, security monitoring, audit events, retention/deletion policies, dependency scanning, and a privacy impact assessment.
+5. Have qualified clinicians review all warning rules and wording. The current rules are incomplete and are not safe for real triage.
+6. Conduct independent clinical validation, fairness testing, accessibility review, threat modelling, and applicable legal/regulatory review before any real healthcare use.
+
+Do not enter unnecessary identifiers or use this application to make medical decisions. Severe, sudden, worsening, or concerning symptoms require prompt professional assessment; a negative checklist result does not mean a person is safe.
+
+## Patient report features
+
+The report wizard can capture optional self-reported health details alongside the symptom timeline:
+
+- BMI calculated from height (cm) and weight (kg), with an adult category label.
+- Blood pressure (systolic/diastolic) with a reading date.
+- Temperature log with Celsius/Fahrenheit live conversion and a reading date.
+- Pulse rate in BPM with a reading date.
+- Medication list using one line per item in `name | dosage as prescribed | schedule` format.
+- Appointment-preparation questions for a clinician.
+
+Entries are saved inside each patient's own report and appear in the report detail page and PDF export. The handwritten-style interface uses Caveat when Google Fonts is reachable and system cursive fallbacks when offline. PDF typography uses ReportLab's built-in Zapf Chancery italic font.
+
+These are patient-entered notes, not clinical interpretation. BMI is a screening measure; the app does not diagnose, triage, interpret vital signs, or recommend medication doses.

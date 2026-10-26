@@ -1,15 +1,32 @@
-"""Conservative, rule-based warning-sign screening, independent of the ML model."""
-# This checklist is intentionally limited and must be clinically reviewed before any real deployment.
-WARNING_TERMS = {
-    "chest_pain": "Chest pain",
-    "shortness_of_breath": "Shortness of breath",
-    "confusion": "Confusion",
+"""Conservative educational warning-sign prompts, independent of ML output.
+
+This checklist is incomplete and is not suitable for triage or emergency clearance.
+"""
+from .data_pipeline import normalize_symptom
+
+# These labels are drawn from the supplied symptom dataset. The list is intentionally
+# small and must not be interpreted as comprehensive clinical screening.
+_WARNING_SYMPTOMS = {
+    "chest pain": "chest pain",
+    "breathlessness": "breathlessness",
+    "blood in sputum": "blood in sputum",
+    "coma": "coma or unresponsiveness",
+    "altered sensorium": "altered sensorium or confusion",
+    "acute liver failure": "acute liver failure label in the source list",
 }
 
-def check_warning_signs(symptoms):
-    found = [WARNING_TERMS[s] for s in symptoms if s in WARNING_TERMS]
-    if found:
-        return {"triggered": True, "signs": found,
-                "message": "One or more selected symptoms can require urgent assessment. If symptoms are severe, sudden, or worsening, contact local emergency services or seek urgent medical care now. Do not wait for this report."}
-    return {"triggered": False, "signs": [],
-            "message": "No warning sign from this limited checklist was selected. This does not rule out an emergency or mean that symptoms are safe."}
+
+def check_warning_signs(selected_symptoms):
+    selected = {normalize_symptom(s) for s in selected_symptoms}
+    signs = [description for key, description in _WARNING_SYMPTOMS.items() if key in selected]
+    if signs:
+        return {
+            "triggered": True,
+            "signs": signs,
+            "message": "One or more selected entries may warrant urgent professional assessment. This checklist is incomplete and cannot determine urgency or rule out an emergency. Seek emergency help for severe or sudden symptoms.",
+        }
+    return {
+        "triggered": False,
+        "signs": [],
+        "message": "No configured warning sign was matched. This checklist is incomplete and does not mean symptoms are safe. Seek prompt medical care for severe, sudden, worsening, or concerning symptoms.",
+    }

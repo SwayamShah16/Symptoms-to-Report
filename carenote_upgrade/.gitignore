@@ -2,8 +2,6 @@
 __pycache__/
 .pytest_cache/
 *.py[cod]
-.env
-instance/
-reports/*.pdf
-reports/*.png
+instance/*.sqlite3-wal
+instance/*.sqlite3-shm
 reports/metrics.json

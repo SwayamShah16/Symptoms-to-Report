@@ -1,33 +1,73 @@
-"""Generate a concise, print-friendly PDF symptom summary."""
+"""Generate a print-friendly PDF summary using ReportLab."""
+from __future__ import annotations
 from io import BytesIO
+from xml.sax.saxutils import escape
 from reportlab.lib import colors
+from reportlab.lib.enums import TA_LEFT
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import mm
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, KeepTogether
-from xml.sax.saxutils import escape
 
-def build_pdf(report):
-    output = BytesIO()
-    doc = SimpleDocTemplate(output, pagesize=A4, rightMargin=18*mm, leftMargin=18*mm, topMargin=16*mm, bottomMargin=16*mm)
-    styles = getSampleStyleSheet()
-    styles.add(ParagraphStyle(name="SmallNote", parent=styles["BodyText"], fontSize=8, leading=11, textColor=colors.HexColor("#52616b")))
-    story = [Paragraph("CareNote", styles["Title"]), Paragraph("Symptom summary for discussion with a qualified healthcare professional", styles["Normal"]), Spacer(1, 7*mm)]
-    details = [["Created", escape(str(report.get("generated_at", "Not recorded")))], ["Duration", escape(str(report.get("duration", "Not provided")))],
-               ["Self-reported severity", escape(str(report.get("severity", "Not provided")))], ["Progression", escape(str(report.get("progression", "Not provided")))]]
-    table = Table(details, colWidths=[43*mm, 120*mm])
-    table.setStyle(TableStyle([("BACKGROUND", (0,0), (0,-1), colors.HexColor("#eef4f6")), ("GRID", (0,0), (-1,-1), .4, colors.HexColor("#d8e1e5")), ("VALIGN", (0,0), (-1,-1), "TOP"), ("PADDING", (0,0), (-1,-1), 7)]))
-    story += [table, Spacer(1, 6*mm), Paragraph("Reported symptoms", styles["Heading2"])]
-    symptoms = report.get("symptoms", [])
-    story.append(Paragraph(escape(", ".join(symptoms) if symptoms else "None recorded"), styles["BodyText"]))
-    story += [Spacer(1, 4*mm), Paragraph("Additional notes", styles["Heading2"]), Paragraph(escape(str(report.get("notes", "None provided"))).replace("\n", "<br/>"), styles["BodyText"])]
-    warning = report.get("warning", {})
-    story += [Spacer(1, 5*mm), Paragraph("Warning-sign screening", styles["Heading2"]), Paragraph(escape(str(warning.get("message", "Not available"))), styles["BodyText"])]
-    analysis = report.get("analysis", {})
-    story += [Spacer(1, 5*mm), Paragraph("Local model information", styles["Heading2"]), Paragraph(escape(str(analysis.get("message", "Model unavailable"))), styles["BodyText"])]
+
+def build_pdf(report) -> BytesIO:
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(
+        buffer, pagesize=A4, rightMargin=18*mm, leftMargin=18*mm,
+        topMargin=17*mm, bottomMargin=17*mm,
+        title="CareNote Symptom Summary", author="CareNote",
+    )
+    base = getSampleStyleSheet()
+    title_style = ParagraphStyle("CareTitle", parent=base["Title"], fontName="ZapfChancery-MediumItalic", fontSize=20, leading=25, textColor=colors.HexColor("#176b63"), alignment=TA_LEFT, spaceAfter=5*mm)
+    heading = ParagraphStyle("CareHeading", parent=base["Heading2"], fontSize=12, leading=16, textColor=colors.HexColor("#1e2b39"), spaceBefore=5*mm, spaceAfter=2*mm)
+    body = ParagraphStyle("CareBody", parent=base["BodyText"], fontSize=9, leading=13, textColor=colors.HexColor("#44515d"), spaceAfter=2*mm)
+    small = ParagraphStyle("CareSmall", parent=body, fontSize=8, leading=11, textColor=colors.HexColor("#6f7d8c"))
+    story = [Paragraph("CareNote", title_style), Paragraph("Symptom summary · Educational note, not a diagnosis", body)]
+    story.append(Paragraph("What you reported", heading))
+    symptoms = report.get("symptoms") or []
+    story.append(Paragraph(escape(", ".join(str(s) for s in symptoms) or "None provided"), body))
+    details = [
+        [Paragraph("Duration", small), Paragraph("Self-reported severity", small), Paragraph("Progression", small)],
+        [Paragraph(escape(str(report.get("duration", "Not provided"))), body), Paragraph(escape(str(report.get("severity", "Unsure"))), body), Paragraph(escape(str(report.get("progression", "Not sure"))), body)],
+    ]
+    table = Table(details, colWidths=[55*mm, 55*mm, 55*mm])
+    table.setStyle(TableStyle([("BACKGROUND", (0,0), (-1,0), colors.HexColor("#eff7f5")), ("BOX", (0,0), (-1,-1), .5, colors.HexColor("#dce6e9")), ("INNERGRID", (0,0), (-1,-1), .35, colors.HexColor("#e4eaf0")), ("VALIGN", (0,0), (-1,-1), "TOP"), ("LEFTPADDING", (0,0), (-1,-1), 8), ("RIGHTPADDING", (0,0), (-1,-1), 8), ("TOPPADDING", (0,0), (-1,-1), 7), ("BOTTOMPADDING", (0,0), (-1,-1), 7)]))
+    story.extend([Spacer(1, 3*mm), table, Paragraph("Additional notes", heading), Paragraph(escape(str(report.get("notes", "None provided")).replace("\n", "<br/>")), body)])
+    health = report.get("health_records") or {}
+    if health:
+        story.append(Paragraph("Health measurements (self-reported)", heading))
+        entries = []
+        if health.get("height_cm") is not None and health.get("weight_kg") is not None:
+            entries.append(f"Height: {health['height_cm']} cm · Weight: {health['weight_kg']} kg · BMI: {health.get('bmi', 'Not available')} ({health.get('bmi_category', 'Not classified')})")
+        bp = health.get("blood_pressure")
+        if bp: entries.append(f"Blood pressure ({bp.get('date','date not provided')}): {bp.get('systolic')}/{bp.get('diastolic')} mmHg")
+        temp = health.get("temperature")
+        if temp: entries.append(f"Temperature ({temp.get('date','date not provided')}): {temp.get('value')} °{temp.get('unit','C')}")
+        pulse = health.get("pulse")
+        if pulse: entries.append(f"Pulse ({pulse.get('date','date not provided')}): {pulse.get('bpm')} BPM")
+        for med in health.get("medications", []):
+            entries.append(f"Medication entered: {med.get('name') or 'Name not provided'} · Dosage: {med.get('dosage') or 'Not provided'} · Schedule: {med.get('schedule') or 'Not provided'}")
+        for entry in entries: story.append(Paragraph(escape(entry), body))
+        story.append(Paragraph("These entries are user-provided records, not a clinical interpretation. BMI is a screening measure only; do not change medication based on this report.", small))
+    story.append(Paragraph("Appointment preparation", heading))
+    questions = str(report.get("appointment_questions") or "No questions were entered. Consider asking the clinician about symptom changes, follow-up, and appropriate next steps.")
+    story.append(Paragraph(escape(questions).replace("\n", "<br/>"), body))
+    warning = report.get("warning") or {}
+    story.append(Paragraph("Warning-sign checklist", heading))
+    story.append(Paragraph(escape(str(warning.get("message", "No warning information available."))), body))
+    if warning.get("signs"):
+        story.append(Paragraph("Selected signs: " + escape(", ".join(map(str, warning["signs"]))), body))
+    analysis = report.get("analysis") or {}
+    story.append(Paragraph("Local model output", heading))
     if analysis.get("available"):
-        story.append(Paragraph("Dataset label (not a diagnosis): " + escape(str(analysis.get("label", "Unavailable"))), styles["BodyText"]))
-    story += [Spacer(1, 8*mm), Paragraph("Important limitation: This report organizes user-entered information. It is not a diagnosis, does not establish that a person is safe, and must not be used to delay urgent care or replace a clinician's assessment.", styles["SmallNote"])]
+        story.append(Paragraph("Dataset label: <b>" + escape(str(analysis.get("label", "Unavailable"))) + "</b>", body))
+        story.append(Paragraph(escape(str(analysis.get("message", "This label is not a diagnosis."))), small))
+    else:
+        story.append(Paragraph("Model result unavailable: " + escape(str(analysis.get("message", "No local model is available."))), body))
+    story.extend([Spacer(1, 4*mm), Paragraph("Important limitation", heading), Paragraph("This educational application is not a medical device. The classifier and warning-sign checklist are not clinically validated, cannot diagnose or triage, and cannot rule out an emergency. For severe, sudden, worsening, or concerning symptoms, seek professional medical assessment promptly.", small)])
+    generated = report.get("generated_at")
+    if generated:
+        story.extend([Spacer(1, 3*mm), Paragraph("Generated: " + escape(str(generated)), small)])
     doc.build(story)
-    output.seek(0)
-    return output
+    buffer.seek(0)
+    return buffer
