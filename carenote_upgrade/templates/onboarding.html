@@ -8,7 +8,7 @@
     <p class="muted">Five short steps. Everything is optional except your name, birth date and consent, and you can edit it any time. It makes every symptom report you create more complete.</p></div>
     {% if not editing %}<form method="post" action="{{ url_for('onboarding_skip') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="text-link ob-skip" type="submit">Skip for now</button></form>{% endif %}
   </div>
-  <div class="ob-layout">
+  <div class="ob-layout ob-layout-single">
     <form method="post" id="onboard-form" class="ob-form" novalidate>
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <ol class="ob-progress" aria-label="Progress"><li><button type="button" data-go="0">About you</button></li><li><button type="button" data-go="1">Your body</button></li><li><button type="button" data-go="2">Health history</button></li><li><button type="button" data-go="3">Daily life</button></li><li><button type="button" data-go="4">Safety net</button></li></ol>
@@ -51,21 +51,6 @@
       <div class="ob-actions"><button type="button" class="button button-secondary" id="ob-back" hidden>← Back</button><button type="button" class="button" id="ob-next">Continue →</button><button type="submit" class="button" id="ob-save" hidden>{% if editing %}Save changes{% else %}Create my Care Passport{% endif %}</button></div>
     </form>
 
-    <aside class="passport" aria-label="Live Care Passport preview">
-      <div class="pp-top"><span class="pp-label">CARE PASSPORT</span><span class="pp-id">CN-{{ '%05d' % current_user.id }}</span></div>
-      <svg class="pp-pulse" viewBox="0 0 300 40" aria-hidden="true"><path d="M0 22h80l14-16 22 32 18-16h166" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      <div class="pp-who"><span class="pp-avatar" id="pp-avatar">?</span><div><strong id="pp-name">Your name</strong><small id="pp-meta">Age and sex appear here</small></div><div class="pp-ring" id="pp-ring" style="--pct:0"><b id="pp-pct">0%</b></div></div>
-      <div class="pp-details">
-        <div class="pp-row"><span>BMI</span><div><div class="pp-gauge"><i id="pp-bmi-dot"></i></div><small id="pp-bmi">Add height and weight</small></div></div>
-        <div class="pp-row"><span>Blood group</span><b id="pp-blood">Not added</b></div>
-        <div class="pp-row"><span>Conditions</span><div class="pp-tags" id="pp-cond"><em>Not added</em></div></div>
-        <div class="pp-row"><span>Allergies</span><b id="pp-allergy">Not added</b></div>
-        <div class="pp-row"><span>Medicines</span><b id="pp-meds">Not added</b></div>
-        <div class="pp-row"><span>Lifestyle</span><div class="pp-tags" id="pp-life"><em>Not added</em></div></div>
-        <div class="pp-row"><span>Emergency</span><b id="pp-emerg">Not added</b></div>
-      </div>
-      <p class="pp-foot">Self-reported. Not a medical record or diagnosis.</p>
-    </aside>
   </div>
 </section>
 <script defer src="{{ url_for('static', filename='onboarding.js') }}"></script>

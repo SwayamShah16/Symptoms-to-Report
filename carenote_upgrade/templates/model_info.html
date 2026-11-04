@@ -1,5 +1,90 @@
-{% extends 'base.html' %}{% block content %}<section class="page-heading"><div><div class="eyebrow">TRANSPARENCY & RESPONSIBLE AI</div><h1>Understand the model.</h1><p>What this application can do, what it cannot do, and where its data comes from.</p></div><span class="pill {% if model.available %}pill-good{% else %}pill-warning{% endif %}">{% if model.available %}LOCAL MODEL LOADED{% else %}MODEL UNAVAILABLE{% endif %}</span></section>
-<section class="notice-card"><div class="notice-icon">ⓘ</div><div><h2>Not a diagnostic tool</h2><p>CareNote is an educational prototype. A model label is a dataset classification—not a diagnosis, medical probability, or treatment recommendation. The warning-sign checklist is incomplete; a negative screen cannot rule out an emergency.</p></div></section>
-<section class="stats-grid model-stats"><article class="stat-card"><span class="stat-label">Dataset available</span><strong class="stat-word">{{ 'Yes' if stats.dataset_available else 'No' }}</strong><small>Local CSV required for classifier</small></article><article class="stat-card"><span class="stat-label">Unique patterns</span><strong>{{ stats.unique_patterns or 0 }}</strong><small>After exact pattern deduplication</small></article><article class="stat-card"><span class="stat-label">Classes</span><strong>{{ stats.class_count or 0 }}</strong><small>Dataset labels, not diseases diagnosed</small></article><article class="stat-card"><span class="stat-label">Symptom features</span><strong>{{ stats.symptom_count or 0 }}</strong><small>Available in source dataset</small></article></section>
-<section class="dashboard-grid"><article class="panel"><div class="panel-heading"><div><h2>Evaluation snapshot</h2><p>Held-out dataset benchmark only</p></div></div>{% if model.available %}<div class="metric-grid"><div><small>Accuracy</small><strong>{{ '%.1f'|format(metrics.accuracy*100) }}%</strong></div><div><small>Macro F1</small><strong>{{ '%.3f'|format(metrics.macro_f1) }}</strong></div><div><small>Training rows</small><strong>{{ metrics.train_rows }}</strong></div><div><small>Test rows</small><strong>{{ metrics.test_rows }}</strong></div></div><p class="muted">These metrics do not establish clinical validity. A small or constructed dataset can yield unstable results and may not represent real patient encounters.</p>{% else %}<div class="model-unavailable"><strong>Classifier not loaded</strong><p>{{ model.reason }}</p><small>Copy your original data/dataset.csv into this project's data/ folder. Do not use synthetic rows to claim medical performance.</small></div>{% endif %}</article><article class="panel"><div class="panel-heading"><div><h2>Safety by design</h2><p>Separate from the ML prediction</p></div></div><div class="safety-list"><div><span class="safety-number">01</span><div><strong>Independent warning checklist</strong><p>Configured warning signs are checked separately from the classifier.</p></div></div><div><span class="safety-number">02</span><div><strong>No confidence-as-diagnosis</strong><p>The interface does not present classifier probabilities as medical certainty.</p></div></div><div><span class="safety-number">03</span><div><strong>Local-only inference</strong><p>No external AI API is used by this implementation.</p></div></div><div><span class="safety-number">04</span><div><strong>Human clinical judgment</strong><p>Qualified professionals must interpret symptoms in context.</p></div></div></div></article></section>
-<section class="panel"><h2>Before any production healthcare use</h2><ul class="check-list"><li>Have warning-sign rules reviewed and approved by qualified clinicians.</li><li>Validate on representative, independently collected data with documented consent and provenance.</li><li>Perform privacy, security, accessibility, bias, and risk-management reviews.</li><li>Establish clinical governance, incident reporting, monitoring, and change control.</li><li>Do not use this prototype for diagnosis, triage, or treatment decisions.</li></ul></section>{% endblock %}
+{% extends 'base.html' %}
+{% block content %}
+<section class="page-heading model-page-heading">
+  <div><div class="eyebrow">PROJECT CONTROL ROOM</div><h1>Model &amp; safety</h1><p>Project status, dataset coverage, evaluation, and instructions for using CareNote responsibly.</p></div>
+  <span class="pill {% if model.available %}pill-good{% else %}pill-warning{% endif %}">{% if model.available %}LOCAL MODEL READY{% else %}MODEL UNAVAILABLE{% endif %}</span>
+</section>
+
+<section class="model-project-hero">
+  <div class="model-project-copy">
+    <div class="project-kicker"><span class="project-pulse"></span> CARENOTE · LOCAL HEALTH JOURNAL</div>
+    <h2>Organize symptoms.<br><em>Understand the model.</em></h2>
+    <p>CareNote turns selected symptoms and personal notes into a structured report. When its local dataset is available, a classifier returns a matching dataset label for discussion with a qualified healthcare professional.</p>
+    <div class="project-tags"><span>Local inference</span><span>Private account reports</span><span>Educational prototype</span></div>
+  </div>
+  <div class="model-status-card">
+    <div class="status-card-top"><span>MODEL STATUS</span><span class="status-dot {% if model.available %}is-ready{% endif %}"></span></div>
+    <strong>{% if model.available %}Ready{% else %}Unavailable{% endif %}</strong>
+    <p>{% if model.available %}A local classifier loaded and can return a dataset label.{% else %}Symptom intake and report saving still work; predictions are disabled.{% endif %}</p>
+    <small>Inference route · on this application server</small>
+  </div>
+</section>
+
+<section class="stats-grid model-dashboard-stats">
+  <article class="stat-card model-kpi-card"><div class="model-kpi-head"><span class="stat-icon mint">▤</span><span class="stat-label">Dataset available</span></div><strong>{{ 'Yes' if stats.dataset_available else 'No' }}</strong><small>Local CSV required for classifier</small></article>
+  <article class="stat-card model-kpi-card"><div class="model-kpi-head"><span class="stat-icon lavender">⌘</span><span class="stat-label">Unique patterns</span></div><strong>{{ stats.unique_patterns or 0 }}</strong><small>After exact pattern deduplication</small></article>
+  <article class="stat-card model-kpi-card"><div class="model-kpi-head"><span class="stat-icon peach">✳</span><span class="stat-label">Classes</span></div><strong>{{ stats.class_count or 0 }}</strong><small>Dataset labels, not diseases diagnosed</small></article>
+  <article class="stat-card model-kpi-card"><div class="model-kpi-head"><span class="stat-icon blue">⌕</span><span class="stat-label">Symptom features</span></div><strong>{{ stats.symptom_count or 0 }}</strong><small>Available in source dataset</small></article>
+</section>
+
+<section class="model-dashboard-grid">
+  <article class="panel model-dashboard-panel">
+    <div class="panel-heading"><div><div class="eyebrow">DATA &amp; PIPELINE</div><h2>What powers a prediction</h2><p>Inputs and processing used by the local classifier.</p></div><span class="project-index">01 / 03</span></div>
+    <div class="pipeline-list">
+      <div><span>01</span><section><strong>Symptom selection</strong><p>Only the selected symptom labels are sent to the local model wrapper.</p></section></div>
+      <div><span>02</span><section><strong>Dataset normalization</strong><p>Symptom names are normalized, malformed rows are skipped, and duplicate disease-pattern rows are removed.</p></section></div>
+      <div><span>03</span><section><strong>Pattern classification</strong><p>A local Random Forest model matches the selected features to one learned dataset label.</p></section></div>
+      <div><span>04</span><section><strong>Report context</strong><p>The output is saved with the user’s report and shown as a dataset label, never as a diagnosis.</p></section></div>
+    </div>
+    <div class="data-source-note"><strong>Dataset location</strong><code>data/dataset.csv</code><small>Expected fields: a Disease, label, or target column plus symptom columns.</small></div>
+  </article>
+
+  <article class="panel model-dashboard-panel">
+    <div class="panel-heading"><div><div class="eyebrow">MODEL EVALUATION</div><h2>Benchmark snapshot</h2><p>Held-out data results from the currently loaded dataset.</p></div><span class="project-index">02 / 03</span></div>
+    {% if model.available %}
+      <div class="metric-grid model-metric-grid">
+        <div><small>Accuracy</small><strong>{{ '%.1f'|format(metrics.accuracy*100) }}%</strong></div>
+        <div><small>Macro F1</small><strong>{{ '%.3f'|format(metrics.macro_f1) }}</strong></div>
+        <div><small>Training rows</small><strong>{{ metrics.train_rows }}</strong></div>
+        <div><small>Test rows</small><strong>{{ metrics.test_rows }}</strong></div>
+      </div>
+      <div class="model-warning-note"><strong>How to read these metrics</strong><p>They describe this dataset split only. They do not establish clinical accuracy, generalization to patients, or safe performance in real care.</p></div>
+    {% else %}
+      <div class="model-unavailable"><strong>Classifier not loaded</strong><p>{{ model.reason }}</p><small>Confirm the source CSV exists and has at least two usable disease labels and symptom patterns.</small></div>
+    {% endif %}
+    <div class="dataset-breakdown">
+      <span>DATA QUALITY CHECKS</span>
+      <p><b>{{ 'Ready' if stats.dataset_available else 'Needs attention' }}</b> · usable dataset rows</p>
+      <p><b>{{ stats.class_count or 0 }}</b> disease labels · <b>{{ stats.symptom_count or 0 }}</b> symptom features</p>
+      <p><b>{{ 'Loaded' if model.available else 'Not loaded' }}</b> classifier status</p>
+    </div>
+  </article>
+</section>
+
+<section class="model-dashboard-grid model-dashboard-grid-lower">
+  <article class="panel model-dashboard-panel">
+    <div class="panel-heading"><div><div class="eyebrow">QUICK INSTRUCTIONS</div><h2>Using CareNote</h2><p>A short guide for users and project reviewers.</p></div><span class="project-index">03 / 03</span></div>
+    <ol class="usage-steps">
+      <li><b>01</b><div><strong>Choose symptoms carefully</strong><p>Select only what you have experienced. Add duration, severity, progression, and notes in your own words.</p></div></li>
+      <li><b>02</b><div><strong>Read the label as a dataset match</strong><p>The predicted label is not a diagnosis, likelihood, triage result, or recommendation.</p></div></li>
+      <li><b>03</b><div><strong>Use the report to prepare</strong><p>Review the summary and discuss relevant symptoms, measurements, and health context with a clinician.</p></div></li>
+      <li><b>04</b><div><strong>Get urgent help when needed</strong><p>Do not wait for this app if symptoms are severe, sudden, worsening, or concerning.</p></div></li>
+    </ol>
+  </article>
+
+  <article class="panel model-dashboard-panel safety-dashboard-panel">
+    <div class="panel-heading"><div><div class="eyebrow">SAFETY BOUNDARIES</div><h2>What this project does not do</h2><p>Keep these limits visible when reviewing outputs.</p></div></div>
+    <div class="safety-list">
+      <div><span class="safety-number">!</span><div><strong>No diagnosis or treatment</strong><p>CareNote is not a medical device and does not recommend treatment or medication changes.</p></div></div>
+      <div><span class="safety-number">!</span><div><strong>No calibrated confidence</strong><p>A label is a classifier output, not a probability that someone has a disease.</p></div></div>
+      <div><span class="safety-number">!</span><div><strong>Warning checklist is incomplete</strong><p>A negative warning-sign screen cannot rule out an emergency or replace clinical assessment.</p></div></div>
+      <div><span class="safety-number">!</span><div><strong>Dataset bias and provenance matter</strong><p>Source quality, representativeness, consent, and licensing need review before broader use.</p></div></div>
+    </div>
+  </article>
+</section>
+
+<section class="panel production-checklist">
+  <div class="panel-heading"><div><div class="eyebrow">PROJECT READINESS</div><h2>Before any production healthcare use</h2><p>Required work beyond a working software prototype.</p></div></div>
+  <div class="readiness-grid"><div><span>01</span><strong>Clinical review</strong><p>Have warning-sign rules and language reviewed by qualified clinicians.</p></div><div><span>02</span><strong>Data governance</strong><p>Document dataset source, licensing, consent, and intended population.</p></div><div><span>03</span><strong>Independent validation</strong><p>Evaluate with representative, independently collected data and report subgroup performance.</p></div><div><span>04</span><strong>Operational safeguards</strong><p>Complete privacy, security, accessibility, bias, risk, monitoring, and incident-response reviews.</p></div></div>
+</section>
+{% endblock %}

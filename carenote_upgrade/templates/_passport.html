@@ -1,12 +1,74 @@
-{% if health_profile %}{% set hp = health_profile %}
-<section class="passport passport-static" aria-label="Your Care Passport">
-  <div class="pp-top"><span class="pp-label">CARE PASSPORT</span><a class="pp-edit" href="{{ url_for('onboarding') }}">Edit</a></div>
-  <svg class="pp-pulse" viewBox="0 0 300 40" aria-hidden="true"><path d="M0 22h80l14-16 22 32 18-16h166" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-  <div class="pp-who"><span class="pp-avatar">{{ hp.preferred_name[:1]|upper }}</span><div><strong>{{ hp.preferred_name }}</strong><small>{% if hp.age is not none %}{{ hp.age }} years{% endif %}{% if hp.sex %} · {{ hp.sex }}{% endif %}{% if hp.blood_group %} · {{ hp.blood_group }}{% endif %}</small></div><div class="pp-ring" style="--pct:{{ hp.completeness }}"><b>{{ hp.completeness }}%</b></div></div>
-  <div class="pp-details">
-    {% if hp.bmi %}<div class="pp-row"><span>BMI</span><b>{{ hp.bmi }} · {{ hp.bmi_category }}</b></div>{% endif %}
-    <div class="pp-row"><span>Conditions</span><div class="pp-tags">{% for c in hp.conditions_all %}<span>{{ c }}</span>{% else %}<em>{{ 'None reported' if hp.no_conditions else 'Not added' }}</em>{% endfor %}</div></div>
-    <div class="pp-row"><span>Allergies</span><b>{{ hp.allergies or ('None reported' if hp.no_allergies else 'Not added') }}</b></div>
-    <div class="pp-row"><span>Medicines</span><b>{{ hp.medications|length if hp.medications else ('None' if hp.no_medications else 'Not added') }}</b></div>
-  </div>
-</section>{% endif %}
+{% if health_profile %}
+  {% set hp = health_profile %}
+  <section class="passport passport-profile-card" aria-label="Your Care Passport">
+    <div class="pp-top">
+      <span class="pp-label">CARE PASSPORT</span>
+      <a class="pp-edit" href="{{ url_for('onboarding') }}">Edit passport ↗</a>
+    </div>
+    <svg class="pp-pulse" viewBox="0 0 300 40" aria-hidden="true">
+      <path d="M0 22h80l14-16 22 32 18-16h166" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <div class="pp-who">
+      <span class="pp-avatar">{{ hp.preferred_name[:1]|upper }}</span>
+      <div>
+        <strong>{{ hp.preferred_name }}</strong>
+        <small>{% if hp.age is not none %}{{ hp.age }} years{% endif %}{% if hp.sex %}{% if hp.age is not none %} · {% endif %}{{ hp.sex }}{% endif %}</small>
+      </div>
+      <div class="pp-ring" style="--pct:{{ hp.completeness }}"><b>{{ hp.completeness }}%</b></div>
+    </div>
+
+    <div class="passport-profile-grid">
+      <section class="passport-detail-group">
+        <h3>About you</h3>
+        <div class="pp-row"><span>Age</span><b>{{ hp.age ~ ' years' if hp.age is not none else 'Not added' }}</b></div>
+        <div class="pp-row"><span>Sex at birth</span><b>{{ hp.sex or 'Not added' }}</b></div>
+        <div class="pp-row"><span>Blood group</span><b>{{ hp.blood_group or 'Not added' }}</b></div>
+      </section>
+
+      <section class="passport-detail-group">
+        <h3>Body measurements</h3>
+        <div class="pp-row"><span>Height</span><b>{{ hp.height_cm ~ ' cm' if hp.height_cm else 'Not added' }}</b></div>
+        <div class="pp-row"><span>Weight</span><b>{{ hp.weight_kg ~ ' kg' if hp.weight_kg else 'Not added' }}</b></div>
+        <div class="pp-row"><span>BMI</span><b>{{ hp.bmi ~ ' · ' ~ hp.bmi_category if hp.bmi else 'Add height and weight' }}</b></div>
+      </section>
+
+      <section class="passport-detail-group">
+        <h3>Health history</h3>
+        <div class="pp-row">
+          <span>Conditions</span>
+          <div class="pp-tags">
+            {% for condition in hp.conditions_all %}<span>{{ condition }}</span>
+            {% else %}<em>{{ 'None reported' if hp.no_conditions else 'Not added' }}</em>{% endfor %}
+          </div>
+        </div>
+        <div class="pp-row">
+          <span>Family history</span>
+          <div class="pp-tags">
+            {% for condition in hp.family_history %}<span>{{ condition }}</span>
+            {% else %}<em>Not added</em>{% endfor %}
+          </div>
+        </div>
+      </section>
+
+      <section class="passport-detail-group">
+        <h3>Allergies</h3>
+        <div class="pp-row"><span>Reported</span><b>{{ hp.allergies or ('None reported' if hp.no_allergies else 'Not added') }}</b></div>
+      </section>
+
+      <section class="passport-detail-group">
+        <h3>Daily life</h3>
+        <div class="pp-row"><span>Smoking</span><b>{{ hp.smoking or 'Not added' }}</b></div>
+        <div class="pp-row"><span>Alcohol</span><b>{{ hp.alcohol or 'Not added' }}</b></div>
+        <div class="pp-row"><span>Activity</span><b>{{ hp.activity or 'Not added' }}</b></div>
+        <div class="pp-row"><span>Sleep</span><b>{{ hp.sleep_hours ~ ' hours/night' if hp.sleep_hours else 'Not added' }}</b></div>
+      </section>
+
+      <section class="passport-detail-group">
+        <h3>Emergency contact</h3>
+        <div class="pp-row"><span>Name</span><b>{{ hp.emergency_name or 'Not added' }}</b></div>
+        <div class="pp-row"><span>Phone</span><b>{{ hp.emergency_phone or 'Not added' }}</b></div>
+      </section>
+    </div>
+    <p class="pp-foot">Self-reported information for organizing care conversations. Not a medical record or diagnosis.</p>
+  </section>
+{% endif %}

@@ -8,7 +8,7 @@
   <div class="health-hub-card-top"><span class="health-tool-icon">{% if key=='bmi' %}↗{% elif key=='blood-pressure' %}♡{% elif key=='temperature' %}℃{% elif key=='pulse' %}♥{% elif key=='symptoms' %}◷{% elif key=='medications' %}▤{% else %}✎{% endif %}</span><span class="health-hub-count">{{ counts[key] }} {{ 'entry' if counts[key]==1 else 'entries' }}</span></div>
   <h2>{{ cfg.title }}</h2>
   <p>{% if key=='bmi' %}Record height and weight, calculate BMI, and review changes over time.{% elif key=='blood-pressure' %}Keep dated systolic and diastolic readings with a trend graph.{% elif key=='temperature' %}Log temperature in Celsius or Fahrenheit and see conversions.{% elif key=='pulse' %}Record heart rate in beats per minute and follow the history.{% elif key=='symptoms' %}Track symptoms, severity, duration, and notes in date order.{% elif key=='medications' %}Keep your own list of medication names, prescribed dosage details, and schedules.{% else %}Prepare questions and keep a dated record for your next visit.{% endif %}</p>
-  <div class="health-hub-latest"><span>Latest record</span><strong>{{ latest[key].value if key in latest else 'No records yet' }}</strong><small>{{ latest[key].date if key in latest else 'Start by adding your first entry' }}</small></div>
+  <div class="health-hub-latest"><span>Latest record</span><strong>{{ latest[key].value if key in latest else 'No records yet' }}</strong><small>{% if key in latest %}{% if latest[key].source %}{{ latest[key].source }} · {% endif %}{{ latest[key].date }}{% else %}Start by adding your first entry{% endif %}</small></div>
   <span class="health-hub-open">Open tracker <span aria-hidden="true">→</span></span>
 </a>
 {% endfor %}

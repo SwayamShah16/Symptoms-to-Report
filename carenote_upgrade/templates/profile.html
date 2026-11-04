@@ -40,6 +40,15 @@
       <label>Confirm new password<input type="password" name="confirm_password" required minlength="12" autocomplete="new-password"></label>
       <button class="button" type="submit">Update password</button>
     </form>
+    <div class="danger-zone">
+      <h3>Delete account and reports</h3>
+      <p>This permanently deletes your account and all reports saved in this local database.</p>
+      <form method="post" action="{{ url_for('delete_account') }}" class="delete-account-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label>Type DELETE to confirm<input name="confirm" required pattern="DELETE" placeholder="DELETE"></label>
+        <button class="button button-danger" type="submit" data-confirm="Permanently delete this account and all saved reports?">Delete account</button>
+      </form>
+    </div>
   </section>
 
   <section class="panel profile-controls-panel">
@@ -77,15 +86,6 @@
       </div>
     </section>
 
-    <div class="danger-zone">
-      <h3>Delete account and reports</h3>
-      <p>This permanently deletes your account and all reports saved in this local database.</p>
-      <form method="post" action="{{ url_for('delete_account') }}" class="delete-account-form">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <label>Type DELETE to confirm<input name="confirm" required pattern="DELETE" placeholder="DELETE"></label>
-        <button class="button button-danger" type="submit" data-confirm="Permanently delete this account and all saved reports?">Delete account</button>
-      </form>
-    </div>
   </section>
 </div>
 {% endblock %}
