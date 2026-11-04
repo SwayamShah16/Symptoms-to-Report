@@ -1,0 +1,72 @@
+{% extends 'base.html' %}{% block content %}
+{% macro chips(name, items, selected) %}<div class="ob-chips">{% for item in items %}<label class="chip"><input type="checkbox" name="{{ name }}" value="{{ item }}" {% if item in selected %}checked{% endif %}><span>{{ item }}</span></label>{% endfor %}</div>{% endmacro %}
+{% macro seg(name, label, items, current) %}<fieldset class="seg"><legend>{{ label }}</legend><div>{% for item in items %}<label><input type="radio" name="{{ name }}" value="{{ item }}" {% if item == current %}checked{% endif %}><span>{{ item }}</span></label>{% endfor %}</div></fieldset>{% endmacro %}
+<section class="ob">
+  <div class="ob-head">
+    <div><div class="eyebrow">{% if editing %}UPDATE YOUR CARE PASSPORT{% else %}STEP INTO CARENOTE{% endif %}</div>
+    <h1>{% if editing %}Keep your story current.{% else %}Let&rsquo;s build your Care Passport.{% endif %}</h1>
+    <p class="muted">Five short steps. Everything is optional except your name, birth date and consent, and you can edit it any time. It makes every symptom report you create more complete.</p></div>
+    {% if not editing %}<form method="post" action="{{ url_for('onboarding_skip') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="text-link ob-skip" type="submit">Skip for now</button></form>{% endif %}
+  </div>
+  <div class="ob-layout">
+    <form method="post" id="onboard-form" class="ob-form" novalidate>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <ol class="ob-progress" aria-label="Progress"><li><button type="button" data-go="0">About you</button></li><li><button type="button" data-go="1">Your body</button></li><li><button type="button" data-go="2">Health history</button></li><li><button type="button" data-go="3">Daily life</button></li><li><button type="button" data-go="4">Safety net</button></li></ol>
+      <div class="ob-bar" aria-hidden="true"><i id="ob-fill"></i></div>
+
+      <fieldset class="ob-step" data-title="About you"><legend>About you</legend><p class="ob-q">Who is this passport for?</p>
+        <label>What should we call you?<input name="preferred_name" maxlength="80" autocomplete="given-name" value="{{ p.get('preferred_name','') }}" placeholder="First name or nickname" required></label>
+        <div class="ob-two"><label>Date of birth<input type="date" name="dob" max="{{ today }}" value="{{ p.get('dob','') }}" autocomplete="bday" required></label>
+        <label>Sex at birth <span class="muted inline-muted">(optional)</span><select name="sex"><option value="">Prefer not to choose</option>{% for o in opts.sex %}<option {% if p.get('sex')==o %}selected{% endif %}>{{ o }}</option>{% endfor %}</select></label></div>
+        <small class="field-help">Age and sex help a clinician read your notes in context. Your birth date is never printed on reports, only your age.</small><p class="ob-error" role="alert" hidden></p></fieldset>
+
+      <fieldset class="ob-step" data-title="Your body"><legend>Your body</legend><p class="ob-q">A few measurements, so your reports start with context.</p>
+        <div class="ob-two"><label>Height (cm)<input type="number" name="height_cm" min="50" max="250" step="0.1" value="{{ p.get('height_cm') or '' }}" placeholder="e.g. 170"></label>
+        <label>Weight (kg)<input type="number" name="weight_kg" min="2" max="500" step="0.1" value="{{ p.get('weight_kg') or '' }}" placeholder="e.g. 68.5"></label></div>
+        <label>Blood group <span class="muted inline-muted">(optional)</span><select name="blood_group"><option value="">Not sure / skip</option>{% for o in opts.blood_groups %}<option {% if p.get('blood_group')==o %}selected{% endif %}>{{ o }}</option>{% endfor %}</select></label>
+        <small class="field-help">BMI is a screening number, not a diagnosis. Watch it update on your passport.</small></fieldset>
+
+      <fieldset class="ob-step" data-title="Health history"><legend>Health history</legend><p class="ob-q">Anything long-term your care team should know?</p>
+        {{ chips('conditions', opts.conditions, p.get('conditions',[])) }}
+        <label class="ob-check"><input type="checkbox" name="no_conditions" {% if p.get('no_conditions') %}checked{% endif %}> None that I know of</label>
+        <label>Something else? <span class="muted inline-muted">(optional)</span><input name="other_conditions" maxlength="200" value="{{ p.get('other_conditions','') }}" placeholder="Type any other condition"></label>
+        <p class="ob-q">Family history</p>{{ chips('family_history', opts.family, p.get('family_history',[])) }}
+        <label>Allergies <span class="muted inline-muted">(medicines, food, other)</span><textarea name="allergies" rows="2" maxlength="300" placeholder="e.g. Penicillin, peanuts">{{ p.get('allergies','') }}</textarea></label>
+        <label class="ob-check"><input type="checkbox" name="no_allergies" {% if p.get('no_allergies') %}checked{% endif %}> No known allergies</label></fieldset>
+
+      <fieldset class="ob-step" data-title="Daily life"><legend>Daily life</legend><p class="ob-q">Medicines and everyday habits.</p>
+        <label>Current medicines <span class="muted inline-muted">(one per line)</span><textarea name="medication_list" rows="3" maxlength="1200" placeholder="Medicine name | dosage as prescribed | schedule">{{ meds_text }}</textarea></label>
+        <label class="ob-check"><input type="checkbox" name="no_medications" {% if p.get('no_medications') %}checked{% endif %}> I don&rsquo;t take regular medicines</label>
+        {{ seg('smoking','Smoking',opts.smoking,p.get('smoking')) }}{{ seg('alcohol','Alcohol',opts.alcohol,p.get('alcohol')) }}{{ seg('activity','Physical activity',opts.activity,p.get('activity')) }}
+        <label>Average sleep (hours per night)<input type="number" name="sleep_hours" min="2" max="16" step="0.5" value="{{ p.get('sleep_hours') or '' }}" placeholder="e.g. 7"></label>
+        <small class="field-help">CareNote records what you tell it. It does not recommend or change any medicine or dose.</small></fieldset>
+
+      <fieldset class="ob-step" data-title="Safety net"><legend>Safety net</legend><p class="ob-q">Who should be reachable, and how we handle your data.</p>
+        <div class="ob-two"><label>Emergency contact name<input name="emergency_name" maxlength="80" value="{{ p.get('emergency_name','') }}" autocomplete="off"></label>
+        <label>Contact phone<input type="tel" name="emergency_phone" maxlength="20" value="{{ p.get('emergency_phone','') }}" autocomplete="off" placeholder="+91 …"></label></div>
+        <div class="ob-privacy"><strong>Your data, your control</strong><ul><li>Stored in your CareNote account on this device&rsquo;s database. No external AI service receives it.</li><li>Included in PDF and JSON exports that <em>you</em> create.</li><li>Editable here any time and removed when you delete your account.</li></ul></div>
+        <label class="ob-check ob-consent"><input type="checkbox" name="consent" {% if p.get('consent') %}checked{% endif %} required> I understand and agree to store this health information in my account.</label>
+        <p class="ob-error" role="alert" hidden></p></fieldset>
+
+      <div class="ob-actions"><button type="button" class="button button-secondary" id="ob-back" hidden>← Back</button><button type="button" class="button" id="ob-next">Continue →</button><button type="submit" class="button" id="ob-save" hidden>{% if editing %}Save changes{% else %}Create my Care Passport{% endif %}</button></div>
+    </form>
+
+    <aside class="passport" aria-label="Live Care Passport preview">
+      <div class="pp-top"><span class="pp-label">CARE PASSPORT</span><span class="pp-id">CN-{{ '%05d' % current_user.id }}</span></div>
+      <svg class="pp-pulse" viewBox="0 0 300 40" aria-hidden="true"><path d="M0 22h80l14-16 22 32 18-16h166" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <div class="pp-who"><span class="pp-avatar" id="pp-avatar">?</span><div><strong id="pp-name">Your name</strong><small id="pp-meta">Age and sex appear here</small></div><div class="pp-ring" id="pp-ring" style="--pct:0"><b id="pp-pct">0%</b></div></div>
+      <div class="pp-details">
+        <div class="pp-row"><span>BMI</span><div><div class="pp-gauge"><i id="pp-bmi-dot"></i></div><small id="pp-bmi">Add height and weight</small></div></div>
+        <div class="pp-row"><span>Blood group</span><b id="pp-blood">Not added</b></div>
+        <div class="pp-row"><span>Conditions</span><div class="pp-tags" id="pp-cond"><em>Not added</em></div></div>
+        <div class="pp-row"><span>Allergies</span><b id="pp-allergy">Not added</b></div>
+        <div class="pp-row"><span>Medicines</span><b id="pp-meds">Not added</b></div>
+        <div class="pp-row"><span>Lifestyle</span><div class="pp-tags" id="pp-life"><em>Not added</em></div></div>
+        <div class="pp-row"><span>Emergency</span><b id="pp-emerg">Not added</b></div>
+      </div>
+      <p class="pp-foot">Self-reported. Not a medical record or diagnosis.</p>
+    </aside>
+  </div>
+</section>
+<script defer src="{{ url_for('static', filename='onboarding.js') }}"></script>
+{% endblock %}
