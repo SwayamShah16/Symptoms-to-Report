@@ -510,19 +510,20 @@ input:focus, select:focus, textarea:focus {
 .model-kpi-head .stat-icon { width: 34px; height: 34px; flex: 0 0 34px; margin: 0; }
 .model-kpi-card > strong { font-size: 25px; line-height: 1.15; }
 .model-kpi-card > small { color: var(--muted); font-size: 11px; line-height: 1.4; }
-.dashboard-grid {
-  align-items: stretch;
-  grid-template-areas: "history patterns" "shortcuts .";
-  grid-template-rows: auto auto;
-}
-.dashboard-grid > .panel { min-width: 0; }
-.dashboard-history-panel { grid-area: history; }
-.dashboard-patterns-panel { grid-area: patterns; }
-.dashboard-shortcuts-panel { grid-area: shortcuts; align-self: start; }
+.dashboard-grid { align-items: stretch; }
+.dashboard-grid > *, .dashboard-history-column { min-width: 0; }
+.dashboard-history-column, .dashboard-patterns-panel { align-self: stretch; }
+.dashboard-history-column { display: flex; flex-direction: column; gap: 18px; }
+.dashboard-history-column > .panel { margin: 0; }
+.dashboard-history-panel { flex: 0 0 auto; }
+.dashboard-patterns-panel { min-width: 0; }
+.dashboard-shortcuts-panel { display: flex; flex: 1 0 auto; flex-direction: column; }
 .dashboard-shortcuts-panel .panel-heading { margin-bottom: 12px; }
 .dashboard-shortcuts-panel .quick-links {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
+  flex: 1 0 auto;
+  align-content: stretch;
   gap: 10px;
   border: 0;
   margin: 0;
@@ -544,12 +545,6 @@ input:focus, select:focus, textarea:focus {
 .dashboard-shortcuts-panel .quick-links a:hover {
   border-color: #d8b7a7;
   background: var(--coral-soft);
-}
-@media (max-width: 1000px) {
-  .dashboard-grid {
-    grid-template-areas: "history" "shortcuts" "patterns";
-    grid-template-rows: auto auto auto;
-  }
 }
 @media (max-width: 760px) {
   .dashboard-shortcuts-panel .quick-links { grid-template-columns: 1fr; }
