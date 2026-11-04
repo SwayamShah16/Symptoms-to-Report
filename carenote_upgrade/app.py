@@ -321,7 +321,7 @@ def create_app(test_config=None):
             severity[data.get("severity","Unsure")]+=1; symptom_counts.update(data.get("symptoms",[]))
         severity_rows=[{"label": label, "count": count, "percent": round(count / max(1, sum(severity.values())) * 100)} for label, count in severity.most_common()]
         top_symptoms=[{"label": label, "count": count, "percent": round(count / max(1, symptom_counts.most_common(1)[0][1]) * 100)} for label, count in symptom_counts.most_common(3)]
-        return render_template("dashboard.html",title="Dashboard",reports=reports[:3],total=len(reports),severity_rows=severity_rows,top_symptoms=top_symptoms,model_available=get_model().available)
+        return render_template("dashboard.html",title="Dashboard",reports=reports[:4],total=len(reports),severity_rows=severity_rows,top_symptoms=top_symptoms,model_available=get_model().available)
 
     def load_health_profile_record(user_id):
         with connect_db() as db:
