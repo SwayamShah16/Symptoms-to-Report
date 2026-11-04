@@ -56,7 +56,7 @@ h1 em{color:var(--coral);font-style:italic}
 .cta-passport{display:flex;justify-content:space-between;align-items:center;gap:20px;background:linear-gradient(120deg,var(--peach),var(--mint));border:1px solid var(--line);border-radius:20px;padding:20px 24px;margin-bottom:22px}.cta-passport p{margin:2px 0 0;color:var(--muted)}
 .steps-band{margin:44px 0}.steps-band h2{text-align:center}.steps-row{list-style:none;display:grid;grid-template-columns:repeat(3,1fr);gap:16px;padding:0;margin:22px 0 0}
 .steps-row li{display:flex;gap:14px;background:#fff;border:1px solid var(--line);border-radius:20px;padding:20px}.steps-row b{width:36px;height:36px;border-radius:12px;background:var(--coral);color:#fff;display:grid;place-items:center;flex:none;font-family:Fraunces,Georgia,serif}.steps-row p{margin:4px 0 0;color:var(--muted);font-size:15px}
-@media(max-width:900px){.ob-layout{grid-template-columns:1fr}.passport:not(.passport-static){order:-1}.passport:not(.passport-static) .pp-details,.passport:not(.passport-static) .pp-foot,.passport:not(.passport-static) .pp-pulse{display:none}.ob-two,.steps-row{grid-template-columns:1fr}.cta-passport{flex-direction:column;align-items:flex-start}}
+@media(max-width:900px){.ob-layout{grid-template-columns:1fr}.ob-two,.steps-row{grid-template-columns:1fr}.cta-passport{flex-direction:column;align-items:flex-start}}
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
 
 /* Extend the Care Passport look to every shared screen and control. */
@@ -219,4 +219,339 @@ input:focus, select:focus, textarea:focus {
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
+}
+
+/* Profile-centered Passport and compact tracker continuity cues. */
+.passport-center {
+  width: 100%;
+  margin: 0 auto 30px;
+}
+.passport-profile-card {
+  width: min(100%, 1040px);
+  max-width: none;
+  margin: 0 auto;
+  padding: 28px;
+}
+.passport-profile-card .pp-who { margin-bottom: 22px; }
+.passport-profile-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+.passport-detail-group {
+  min-width: 0;
+  padding: 17px 18px;
+  border: 1px solid rgba(220, 241, 234, .15);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, .055);
+}
+.passport-detail-group h3 {
+  margin: 0 0 13px;
+  color: #f4c26b;
+  font: 600 16px Fraunces, Georgia, serif;
+}
+.passport-detail-group .pp-row {
+  grid-template-columns: minmax(86px, .42fr) minmax(0, 1fr);
+  gap: 12px;
+  padding: 8px 0;
+  border-top: 1px solid rgba(255, 255, 255, .09);
+}
+.passport-detail-group .pp-row:first-of-type { border-top: 0; }
+.passport-detail-group .pp-row > span { color: #9fcfc6; }
+.passport-detail-group .pp-row b { color: #f4efe6; font-weight: 500; }
+.passport-detail-group .pp-tags { gap: 7px; }
+.passport-detail-group .pp-tags span {
+  background: rgba(255, 255, 255, .13);
+  padding: 4px 10px;
+}
+.passport-profile-card .pp-foot {
+  padding-top: 14px;
+  border-top: 1px solid rgba(255, 255, 255, .12);
+}
+.ob-layout-single {
+  grid-template-columns: minmax(0, 940px);
+  justify-content: center;
+}
+.ob-layout-single .ob-form { width: 100%; }
+.profile-controls-panel { align-self: start; }
+.profile-health-highlight {
+  margin: 20px 0;
+  padding: 18px;
+  border: 1px solid #eadbd0;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #fff2ea, #edf6f2);
+  box-shadow: 0 10px 24px rgba(15, 70, 64, .07);
+}
+.profile-health-highlight-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.profile-health-highlight-heading .eyebrow { margin-bottom: 4px; }
+.profile-health-highlight-heading h3 {
+  margin: 0;
+  font: 600 20px Fraunces, Georgia, serif;
+}
+.profile-controls-panel .profile-health-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+}
+.profile-controls-panel .profile-health-item {
+  padding: 12px;
+  border-radius: 13px;
+  background: rgba(255, 255, 255, .88);
+}
+.profile-controls-panel .profile-health-item > span { font-size: 12px; }
+.profile-controls-panel .profile-health-item strong { font-size: 14px; }
+.profile-controls-panel .profile-health-item small { font-size: 11px; }
+.passport-sync-card {
+  margin: 0 0 18px;
+  padding: 16px;
+  border: 1px solid #d5e9e1;
+  border-radius: 15px;
+  background: linear-gradient(120deg, var(--teal-soft), #fffdfa);
+}
+.passport-sync-card h3 { margin: 0 0 8px; font: 600 18px Fraunces, Georgia, serif; }
+.passport-sync-card p { margin: 5px 0; color: var(--muted); font-size: 13px; }
+.passport-sync-card .text-link { display: inline-block; margin-top: 9px; }
+.current-medication-list { display: grid; gap: 8px; margin: 10px 0 0; padding: 0; list-style: none; }
+.current-medication-list li {
+  display: grid;
+  gap: 3px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: var(--paper);
+}
+.current-medication-list small { color: var(--muted); }
+@media (max-width: 760px) {
+  .passport-profile-card { padding: 20px; }
+  .passport-profile-grid { grid-template-columns: 1fr; }
+  .profile-controls-panel .profile-health-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 980px) {
+  .profile-grid { grid-template-columns: 1fr; }
+  .ob-layout-single { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 1400px) {
+  .topbar {
+    height: auto;
+    min-height: 72px;
+    flex-wrap: wrap;
+    gap: 10px 16px;
+    padding: 12px clamp(16px, 3vw, 24px);
+  }
+  .topbar .brand {
+    order: 0;
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .topbar .language-form {
+    order: 2;
+    flex: 0 0 auto;
+    margin-left: auto;
+  }
+  .topbar .language-form select { width: 74px; min-width: 74px; }
+  .topbar .nav {
+    order: 3;
+    flex: 0 0 100%;
+    width: 100%;
+    min-width: 0;
+    margin: 0;
+    gap: 16px;
+    padding: 4px 0 6px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: thin;
+    scrollbar-color: #b8cfc5 transparent;
+    overscroll-behavior-x: contain;
+  }
+  .topbar .nav > a,
+  .topbar .nav > form { flex: 0 0 auto; }
+}
+
+/* Keep the active symptom filters and selections readable against the brand color. */
+.category-tab.active {
+  color: #fff;
+}
+.wizard-step.active .symptom-option:has(input:checked) {
+  color: var(--brand-dark);
+  background: var(--teal-soft);
+  border-color: var(--brand);
+}
+.selected-count strong {
+  color: var(--brand-dark);
+  background-color: transparent;
+  border-color: transparent;
+}
+.profile-grid .danger-zone {
+  border-color: #f1d8d6;
+  background: var(--coral-soft);
+}
+
+/* Model & safety project dashboard */
+.model-page-heading { align-items: center; }
+.model-page-heading .pill { flex: 0 0 auto; }
+.model-project-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(250px, .65fr);
+  gap: 28px;
+  align-items: center;
+  padding: clamp(24px, 4vw, 42px);
+  margin-bottom: 20px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 26px;
+  background: radial-gradient(500px 240px at 5% 0%, rgba(232,114,92,.24), transparent 70%), linear-gradient(135deg, #0c3b38, #115a53 72%, #176b63);
+  color: #f4efe6;
+  box-shadow: 0 20px 44px rgba(15,70,64,.16);
+}
+.model-project-copy { max-width: 720px; }
+.project-kicker, .status-card-top, .data-source-note > strong, .dataset-breakdown > span {
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: .14em;
+}
+.project-kicker { display: flex; align-items: center; gap: 9px; color: #bfe0d9; }
+.project-pulse, .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--coral); box-shadow: 0 0 0 5px rgba(232,114,92,.14); }
+.model-project-copy h2 { margin: 17px 0 12px; color: #fffaf2; font: 600 clamp(30px, 4vw, 44px)/1.08 Fraunces, Georgia, serif; letter-spacing: -.035em; }
+.model-project-copy h2 em { color: #f4c26b; font-style: italic; }
+.model-project-copy > p { max-width: 680px; margin: 0; color: #c9e1dc; font-size: 14px; line-height: 1.75; }
+.project-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
+.project-tags span { padding: 6px 10px; border: 1px solid rgba(255,255,255,.18); border-radius: 999px; background: rgba(255,255,255,.08); color: #e1f0ec; font-size: 11px; }
+.model-status-card { padding: 19px; border: 1px solid rgba(255,255,255,.17); border-radius: 18px; background: rgba(255,255,255,.1); backdrop-filter: blur(10px); }
+.status-card-top { display: flex; align-items: center; justify-content: space-between; color: #bfe0d9; }
+.status-dot { background: #e8725c; }
+.status-dot.is-ready { background: #9be0b4; box-shadow: 0 0 0 5px rgba(155,224,180,.15); }
+.model-status-card > strong { display: block; margin-top: 14px; color: #fffaf2; font: 600 28px Fraunces, Georgia, serif; }
+.model-status-card p { margin: 5px 0 14px; color: #c9e1dc; font-size: 13px; line-height: 1.6; }
+.model-status-card small { color: #a8cec5; font-size: 10px; }
+.model-dashboard-stats { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.model-dashboard-grid { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, .95fr); gap: 18px; margin-bottom: 18px; align-items: stretch; }
+.model-dashboard-grid-lower { grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr); }
+.model-dashboard-panel { height: 100%; margin: 0; }
+.model-dashboard-panel .panel-heading { align-items: start; }
+.model-dashboard-panel .panel-heading h2 { margin: 4px 0 5px; }
+.model-dashboard-panel .panel-heading p { margin: 0; }
+.project-index { color: #9caea9; font: 600 11px ui-monospace, Consolas, monospace; white-space: nowrap; }
+.pipeline-list { display: grid; gap: 13px; }
+.pipeline-list > div { display: grid; grid-template-columns: 34px 1fr; gap: 11px; align-items: start; }
+.pipeline-list > div > span, .usage-steps > li > b { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 10px; background: var(--teal-soft); color: var(--brand); font: 700 10px ui-monospace, Consolas, monospace; }
+.pipeline-list section strong, .usage-steps strong { font-size: 13px; }
+.pipeline-list section p, .usage-steps p { margin: 3px 0 0; color: var(--muted); font-size: 12px; line-height: 1.55; }
+.data-source-note { display: grid; gap: 6px; margin-top: 17px; padding: 14px; border: 1px solid var(--line); border-radius: 13px; background: #f8f5ef; }
+.data-source-note > strong, .dataset-breakdown > span { color: var(--coral); }
+.data-source-note code { color: var(--brand-dark); font-size: 13px; font-weight: 700; }
+.data-source-note small { color: var(--muted); font-size: 11px; line-height: 1.45; }
+.model-metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.model-metric-grid > div { min-height: 76px; }
+.model-warning-note { margin-top: 14px; padding: 13px 14px; border: 1px solid #f1dfb6; border-radius: 13px; background: #fff8e9; }
+.model-warning-note strong { color: #815c20; font-size: 12px; }
+.model-warning-note p { margin: 4px 0 0; color: #79694e; font-size: 11px; line-height: 1.55; }
+.dataset-breakdown { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); }
+.dataset-breakdown p { margin: 7px 0 0; color: var(--muted); font-size: 11px; }
+.dataset-breakdown b { color: var(--ink); }
+.usage-steps { display: grid; gap: 14px; margin: 0; padding: 0; list-style: none; }
+.usage-steps > li { display: grid; grid-template-columns: 34px 1fr; gap: 11px; align-items: start; }
+.usage-steps > li > b { width: 32px; height: 32px; border-radius: 50%; background: var(--coral-soft); color: #b54f3d; }
+.safety-dashboard-panel .safety-list > div { padding: 10px 0; }
+.safety-dashboard-panel .safety-number { background: var(--coral-soft); color: #a94c3d; }
+.production-checklist { margin-top: 0; }
+.production-checklist > .panel-heading { margin-bottom: 15px; }
+.readiness-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.readiness-grid > div { padding: 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--paper); }
+.readiness-grid span { display: block; margin-bottom: 10px; color: var(--coral); font: 700 11px ui-monospace, Consolas, monospace; }
+.readiness-grid strong { font-size: 12px; }
+.readiness-grid p { margin: 5px 0 0; color: var(--muted); font-size: 11px; line-height: 1.5; }
+@media (max-width: 980px) {
+  .model-project-hero { grid-template-columns: 1fr; }
+  .model-status-card { max-width: none; }
+  .model-dashboard-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .model-dashboard-grid, .model-dashboard-grid-lower { grid-template-columns: 1fr; }
+  .readiness-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 760px) {
+  .model-dashboard-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .model-project-copy h2 { font-size: 32px; }
+  .model-dashboard-panel { padding: 18px; }
+}
+@media (max-width: 480px) {
+  .model-dashboard-stats, .readiness-grid { grid-template-columns: 1fr; }
+  .model-project-hero { padding: 22px; }
+}
+
+/* Center the signed-in navigation between the brand and language control. */
+@media (min-width: 1401px) {
+  .topbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  }
+  .topbar .brand { grid-column: 1; justify-self: start; }
+  .topbar .nav { grid-column: 2; justify-content: center; margin-left: 0; }
+  .topbar .language-form { grid-column: 3; justify-self: end; }
+}
+@media (max-width: 1400px) {
+  .topbar .nav { justify-content: safe center; }
+}
+
+/* Keep each model statistic grouped and clearly separated. */
+.model-kpi-card {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 7px;
+  min-height: 135px;
+  padding: 17px 18px;
+}
+.model-kpi-head { display: flex; align-items: center; gap: 10px; }
+.model-kpi-head .stat-icon { width: 34px; height: 34px; flex: 0 0 34px; margin: 0; }
+.model-kpi-card > strong { font-size: 25px; line-height: 1.15; }
+.model-kpi-card > small { color: var(--muted); font-size: 11px; line-height: 1.4; }
+.dashboard-grid {
+  align-items: stretch;
+  grid-template-areas: "history patterns" "shortcuts .";
+  grid-template-rows: auto auto;
+}
+.dashboard-grid > .panel { min-width: 0; }
+.dashboard-history-panel { grid-area: history; }
+.dashboard-patterns-panel { grid-area: patterns; }
+.dashboard-shortcuts-panel { grid-area: shortcuts; align-self: start; }
+.dashboard-shortcuts-panel .panel-heading { margin-bottom: 12px; }
+.dashboard-shortcuts-panel .quick-links {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+.dashboard-shortcuts-panel .quick-links a {
+  min-height: 64px;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.4;
+}
+.dashboard-shortcuts-panel .quick-links a:hover {
+  border-color: #d8b7a7;
+  background: var(--coral-soft);
+}
+@media (max-width: 1000px) {
+  .dashboard-grid {
+    grid-template-areas: "history" "shortcuts" "patterns";
+    grid-template-rows: auto auto auto;
+  }
+}
+@media (max-width: 760px) {
+  .dashboard-shortcuts-panel .quick-links { grid-template-columns: 1fr; }
+  .dashboard-shortcuts-panel .quick-links a { min-height: 50px; }
 }

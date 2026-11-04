@@ -12,17 +12,25 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, Tabl
 
 def build_pdf(report) -> BytesIO:
     buffer = BytesIO()
+    analysis = report.get("analysis") or {}
+    prediction_label = analysis.get("label") if analysis.get("available") else "Prediction unavailable"
     doc = SimpleDocTemplate(
         buffer, pagesize=A4, rightMargin=18*mm, leftMargin=18*mm,
         topMargin=17*mm, bottomMargin=17*mm,
-        title="CareNote Symptom Summary", author="CareNote",
+        title=f"CareNote prediction: {prediction_label}", author="CareNote",
     )
     base = getSampleStyleSheet()
     title_style = ParagraphStyle("CareTitle", parent=base["Title"], fontName="Helvetica-Bold", fontSize=21, leading=27, textColor=colors.HexColor("#176b63"), alignment=TA_LEFT, spaceAfter=5*mm)
     heading = ParagraphStyle("CareHeading", parent=base["Heading2"], fontSize=13, leading=18, textColor=colors.HexColor("#1e2b39"), spaceBefore=5*mm, spaceAfter=2*mm)
     body = ParagraphStyle("CareBody", parent=base["BodyText"], fontSize=10.5, leading=15, textColor=colors.HexColor("#44515d"), spaceAfter=2*mm)
     small = ParagraphStyle("CareSmall", parent=body, fontSize=9.5, leading=13, textColor=colors.HexColor("#6f7d8c"))
-    story = [Paragraph("CareNote", title_style), Paragraph("Symptom summary · Educational note, not a diagnosis", body)]
+    story = [Paragraph("CareNote", title_style), Paragraph("Predicted disease label · Dataset output, not a diagnosis", body)]
+    if analysis.get("available"):
+        story.append(Paragraph("<b>" + escape(str(prediction_label)) + "</b>", ParagraphStyle("CarePrediction", parent=title_style, fontSize=16, leading=20, spaceAfter=2*mm)))
+        story.append(Paragraph(escape(str(analysis.get("message", "This label is not a diagnosis."))), small))
+    else:
+        story.append(Paragraph("The local model could not produce a label for this report.", body))
+        story.append(Paragraph(escape(str(analysis.get("message", "No local model is available."))), small))
     story.append(Paragraph("What you reported", heading))
     symptoms = report.get("symptoms") or []
     story.append(Paragraph(escape(", ".join(str(s) for s in symptoms) or "None provided"), body))
@@ -45,18 +53,9 @@ def build_pdf(report) -> BytesIO:
         if temp: entries.append(f"Temperature ({temp.get('date','date not provided')}): {temp.get('value')} °{temp.get('unit','C')}")
         pulse = health.get("pulse")
         if pulse: entries.append(f"Pulse ({pulse.get('date','date not provided')}): {pulse.get('bpm')} BPM")
-        for med in health.get("medications", []):
-            entries.append(f"Medication entered: {med.get('name') or 'Name not provided'} · Dosage: {med.get('dosage') or 'Not provided'} · Schedule: {med.get('schedule') or 'Not provided'}")
         for entry in entries: story.append(Paragraph(escape(entry), body))
-    timeline = report.get("health_timeline") or []
-    if timeline:
-        story.append(Paragraph("Symptom timeline (self-reported)", heading))
-        for item in timeline:
-            line = f"{item.get('date', 'Date not provided')} · {item.get('symptom', 'Symptom not provided')} · Severity: {item.get('severity', 'Unsure')} · Duration: {item.get('duration', 'Not provided')}"
-            if item.get("notes"): line += " · Notes: " + str(item["notes"])
-            story.append(Paragraph(escape(line), body))
-    if health or timeline:
-        story.append(Paragraph("These entries are user-provided records, not a clinical interpretation. BMI is a screening measure only; do not change medication based on this report.", small))
+    if health:
+        story.append(Paragraph("These measurements are user-provided, not a clinical interpretation. BMI is a screening measure only.", small))
     story.append(Paragraph("Appointment preparation", heading))
     questions = str(report.get("appointment_questions") or "No questions were entered. Consider asking the clinician about symptom changes, follow-up, and appropriate next steps.")
     story.append(Paragraph(escape(questions).replace("\n", "<br/>"), body))
@@ -65,13 +64,6 @@ def build_pdf(report) -> BytesIO:
     story.append(Paragraph(escape(str(warning.get("message", "No warning information available."))), body))
     if warning.get("signs"):
         story.append(Paragraph("Selected signs: " + escape(", ".join(map(str, warning["signs"]))), body))
-    analysis = report.get("analysis") or {}
-    story.append(Paragraph("Local model output", heading))
-    if analysis.get("available"):
-        story.append(Paragraph("Dataset label: <b>" + escape(str(analysis.get("label", "Unavailable"))) + "</b>", body))
-        story.append(Paragraph(escape(str(analysis.get("message", "This label is not a diagnosis."))), small))
-    else:
-        story.append(Paragraph("Model result unavailable: " + escape(str(analysis.get("message", "No local model is available."))), body))
     story.extend([Spacer(1, 4*mm), Paragraph("Important limitation", heading), Paragraph("This educational application is not a medical device. The classifier and warning-sign checklist are not clinically validated, cannot diagnose or triage, and cannot rule out an emergency. For severe, sudden, worsening, or concerning symptoms, seek professional medical assessment promptly.", small)])
     generated = report.get("generated_at")
     if generated:

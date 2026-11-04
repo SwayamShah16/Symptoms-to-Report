@@ -119,17 +119,26 @@ def create_app(test_config=None):
             ).fetchone()
         return row is None or (not row["profile_json"] and row["status"] != "skipped")
 
+    def decode_report_json(raw):
+        """Return a safe report mapping so one legacy/corrupt row cannot break history."""
+        try:
+            report = json.loads(raw or "{}")
+        except (TypeError, ValueError):
+            return {}
+        return report if isinstance(report, dict) else {}
+
     def get_owned_report(report_id):
         with connect_db() as db:
             row = db.execute("SELECT * FROM reports WHERE id=? AND user_id=?", (report_id, g.user["id"])).fetchone()
         if row is None: abort(404)
-        report = json.loads(row["report_json"])
+        report = decode_report_json(row["report_json"])
         report.update(id=row["id"], title=row["title"], created_at=row["created_at"], updated_at=row["updated_at"])
         return report
 
     def save_report(user_id, report, report_id=None, title=None):
         now = utc_now()
-        title = (title or (" / ".join(report.get("symptoms", [])[:2]) or "Symptom summary"))[:100]
+        prediction = report.get("analysis") or {}
+        title = (title or (prediction.get("label") if prediction.get("available") else "Prediction unavailable") or "Prediction unavailable")[:100]
         payload = json.dumps(report, ensure_ascii=False)
         with connect_db() as db:
             if report_id is None:
@@ -180,7 +189,6 @@ def create_app(test_config=None):
             "blood_pressure": {"systolic": bp_sys, "diastolic": bp_dia, "date": (form.get("bp_date", "").strip()[:10] or today)} if bp_sys is not None and bp_dia is not None else None,
             "temperature": {"value": temp_value, "unit": temp_unit, "date": (form.get("temperature_date", "").strip()[:10] or today)} if temp_value is not None else None,
             "pulse": {"bpm": pulse, "date": (form.get("pulse_date", "").strip()[:10] or today)} if pulse is not None else None,
-            "medications": [{"name": parts[0][:120], "dosage": parts[1][:120] if len(parts) > 1 else "", "schedule": parts[2][:160] if len(parts) > 2 else ""} for line in form.get("medication_list", "").splitlines() if line.strip() for parts in [[part.strip() for part in line.split("|")]]],
         }
         health_records = {key: value for key, value in health_records.items() if value is not None and value != []}
         if g.user:
@@ -190,8 +198,6 @@ def create_app(test_config=None):
                 health_records["care_passport"] = report_snapshot(summarize(json.loads(profile_row["profile_json"])))
         appointment_questions = form.get("appointment_questions", "").strip()[:1200]
         # Snapshot recent saved health logs into this report so the PDF is self-contained.
-        saved_health_timeline = []
-        saved_medications = []
         saved_questions = []
         if g.user:
             with connect_db() as db:
@@ -200,9 +206,7 @@ def create_app(test_config=None):
                 item = json.loads(log_row["entry_json"])
                 item["entry_type"] = log_row["entry_type"]
                 item["recorded_at"] = log_row["recorded_at"]
-                if log_row["entry_type"] == "symptom": saved_health_timeline.append(item)
-                elif log_row["entry_type"] == "medication": saved_medications.append(item)
-                elif log_row["entry_type"] == "appointment" and not appointment_questions: saved_questions.append(item.get("questions", ""))
+                if log_row["entry_type"] == "appointment" and not appointment_questions: saved_questions.append(item.get("questions", ""))
                 elif log_row["entry_type"] == "measurement":
                     kind = item.get("kind")
                     if kind == "bmi":
@@ -211,18 +215,12 @@ def create_app(test_config=None):
                     elif kind == "temperature": health_records.setdefault("temperature", {"value":item.get("value"),"unit":item.get("unit"),"date":item.get("date")})
                     elif kind == "pulse": health_records.setdefault("pulse", {"bpm":item.get("bpm"),"date":item.get("date")})
         health_records = {key: value for key, value in health_records.items() if value is not None and value != []}
-        # Keep manually entered medication details first, then include saved medication logs.
-        existing_meds = health_records.get("medications", [])
-        for item in saved_medications:
-            candidate = {"name": item.get("name", ""), "dosage": item.get("dosage", ""), "schedule": item.get("schedule", ""), "date": item.get("date", "")}
-            if candidate not in existing_meds: existing_meds.append(candidate)
-        if existing_meds: health_records["medications"] = existing_meds
         if not appointment_questions and saved_questions: appointment_questions = "\n".join(saved_questions[:3])[:1200]
         return {"generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
                 "selected_keys": selected, "symptoms": [options[k] for k in selected], "duration": duration,
                 "severity": severity.title(), "progression": progression.replace("_", " ").title(),
                 "notes": form.get("notes", "").strip()[:1200] or "None provided", "analysis": analysis, "warning": warning,
-                "health_records": health_records, "health_timeline": saved_health_timeline[:20], "appointment_questions": appointment_questions,
+                "health_records": health_records, "appointment_questions": appointment_questions,
                 "language": g.language}, None
 
     @app.get("/")
@@ -316,11 +314,14 @@ def create_app(test_config=None):
         with connect_db() as db: rows=db.execute("SELECT id,title,report_json,created_at,updated_at FROM reports WHERE user_id=? ORDER BY created_at DESC",(g.user["id"],)).fetchall()
         reports=[]; severity=Counter(); symptom_counts=Counter()
         for row in rows:
-            data=json.loads(row["report_json"]); reports.append({"id":row["id"],"title":row["title"],"created_at":row["created_at"],"symptoms":data.get("symptoms",[]),"severity":data.get("severity","Unsure")})
+            data=decode_report_json(row["report_json"])
+            analysis=data.get("analysis")
+            if not isinstance(analysis, dict): analysis={}
+            reports.append({"id":row["id"],"title":row["title"],"created_at":row["created_at"],"symptoms":data.get("symptoms",[]),"severity":data.get("severity","Unsure"),"analysis":analysis})
             severity[data.get("severity","Unsure")]+=1; symptom_counts.update(data.get("symptoms",[]))
         severity_rows=[{"label": label, "count": count, "percent": round(count / max(1, sum(severity.values())) * 100)} for label, count in severity.most_common()]
-        top_symptoms=[{"label": label, "count": count, "percent": round(count / max(1, symptom_counts.most_common(1)[0][1]) * 100)} for label, count in symptom_counts.most_common(6)]
-        return render_template("dashboard.html",title="Dashboard",reports=reports[:5],total=len(reports),severity_rows=severity_rows,top_symptoms=top_symptoms,model_available=get_model().available)
+        top_symptoms=[{"label": label, "count": count, "percent": round(count / max(1, symptom_counts.most_common(1)[0][1]) * 100)} for label, count in symptom_counts.most_common(3)]
+        return render_template("dashboard.html",title="Dashboard",reports=reports[:3],total=len(reports),severity_rows=severity_rows,top_symptoms=top_symptoms,model_available=get_model().available)
 
     def load_health_profile_record(user_id):
         with connect_db() as db:
@@ -625,12 +626,15 @@ def create_app(test_config=None):
             else: rows=db.execute("SELECT id,title,report_json,created_at,updated_at FROM reports WHERE user_id=? ORDER BY created_at DESC",(g.user["id"],)).fetchall()
         reports=[]
         for row in rows:
-            data=json.loads(row["report_json"]); reports.append({"id":row["id"],"title":row["title"],"created_at":row["created_at"],"updated_at":row["updated_at"],"symptoms":data.get("symptoms",[]),"severity":data.get("severity","Unsure")})
+            data=decode_report_json(row["report_json"])
+            analysis=data.get("analysis")
+            if not isinstance(analysis, dict): analysis={}
+            reports.append({"id":row["id"],"title":row["title"],"created_at":row["created_at"],"updated_at":row["updated_at"],"symptoms":data.get("symptoms",[]),"severity":data.get("severity","Unsure"),"analysis":analysis})
         return render_template("history.html",title="Report history",reports=reports,q=q)
 
     @app.get("/reports/<int:report_id>")
     @login_required
-    def report_detail(report_id): return render_template("result.html",title="Symptom summary",report=get_owned_report(report_id),saved=True)
+    def report_detail(report_id): return render_template("result.html",title="Predicted disease label",report=get_owned_report(report_id),saved=True)
 
     @app.route("/reports/<int:report_id>/edit",methods=["GET","POST"])
     @login_required

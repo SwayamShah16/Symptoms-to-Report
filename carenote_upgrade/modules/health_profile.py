@@ -131,7 +131,7 @@ def summarize(profile, today=None):
 def report_snapshot(summary):
     """Compact subset copied into each saved report (no date of birth)."""
     keys = ["preferred_name", "age", "sex", "blood_group", "height_cm", "weight_kg", "bmi", "bmi_category",
-            "conditions_all", "family_history", "allergies", "medications", "smoking", "alcohol",
+            "conditions_all", "family_history", "allergies", "smoking", "alcohol",
             "activity", "sleep_hours", "emergency_name", "emergency_phone"]
     snap = {k: summary.get(k) for k in keys if summary.get(k) not in (None, "", [])}
     if summary.get("no_allergies"):
