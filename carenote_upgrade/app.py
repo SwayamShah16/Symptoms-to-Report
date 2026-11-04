@@ -16,6 +16,9 @@ from modules.data_pipeline import get_all_symptoms
 from modules.model import get_model
 from modules.safety_screening import check_warning_signs
 from modules.report_generator import build_pdf
+from modules.health_profile import (CONDITIONS, FAMILY_HISTORY, BLOOD_GROUPS, SEX_OPTIONS,
+                                    SMOKING, ALCOHOL, ACTIVITY, parse_profile, summarize,
+                                    report_snapshot)
 
 BASE_DIR = Path(__file__).resolve().parent
 ALLOWED_LANGUAGES = {"en", "hi", "mr"}
@@ -70,6 +73,10 @@ def create_app(test_config=None):
                 entry_type TEXT NOT NULL, entry_json TEXT NOT NULL, recorded_at TEXT NOT NULL,
                 FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE)""")
             db.execute("CREATE INDEX IF NOT EXISTS idx_health_entries_user_date ON health_entries(user_id, recorded_at DESC)")
+            db.execute("""CREATE TABLE IF NOT EXISTS health_profiles (
+                user_id INTEGER PRIMARY KEY, profile_json TEXT, status TEXT NOT NULL DEFAULT 'pending',
+                updated_at TEXT NOT NULL,
+                FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE)""")
     init_db()
 
     @app.before_request
@@ -103,6 +110,14 @@ def create_app(test_config=None):
                 return redirect(url_for("login", next=request.path))
             return view(*args, **kwargs)
         return wrapped
+
+    def needs_care_passport(user_id):
+        with connect_db() as db:
+            row = db.execute(
+                "SELECT profile_json,status FROM health_profiles WHERE user_id=?",
+                (user_id,),
+            ).fetchone()
+        return row is None or (not row["profile_json"] and row["status"] != "skipped")
 
     def get_owned_report(report_id):
         with connect_db() as db:
@@ -168,6 +183,11 @@ def create_app(test_config=None):
             "medications": [{"name": parts[0][:120], "dosage": parts[1][:120] if len(parts) > 1 else "", "schedule": parts[2][:160] if len(parts) > 2 else ""} for line in form.get("medication_list", "").splitlines() if line.strip() for parts in [[part.strip() for part in line.split("|")]]],
         }
         health_records = {key: value for key, value in health_records.items() if value is not None and value != []}
+        if g.user:
+            with connect_db() as db:
+                profile_row = db.execute("SELECT profile_json FROM health_profiles WHERE user_id=?", (g.user["id"],)).fetchone()
+            if profile_row and profile_row["profile_json"]:
+                health_records["care_passport"] = report_snapshot(summarize(json.loads(profile_row["profile_json"])))
         appointment_questions = form.get("appointment_questions", "").strip()[:1200]
         # Snapshot recent saved health logs into this report so the PDF is self-contained.
         saved_health_timeline = []
@@ -233,18 +253,24 @@ def create_app(test_config=None):
                         cur = db.execute("INSERT INTO users(email,password_hash,created_at,preferred_language) VALUES(?,?,?,?)", (email,generate_password_hash(password),utc_now(),g.language))
                         uid=cur.lastrowid
                     session.clear(); session["user_id"]=uid; session["language"]=g.language; session.permanent=True
-                    return redirect(url_for("dashboard"))
+                    with connect_db() as db:
+                        db.execute("INSERT INTO health_profiles(user_id,profile_json,status,updated_at) VALUES(?,NULL,'pending',?)", (uid,utc_now()))
+                    return redirect(url_for("onboarding"))
                 except sqlite3.IntegrityError: flash("An account with that email already exists.", "warning")
         return render_template("auth.html", mode="register", title="Create account")
 
     @app.route("/login", methods=["GET","POST"])
     def login():
-        if g.user: return redirect(url_for("dashboard"))
+        if g.user:
+            destination = "onboarding" if needs_care_passport(g.user["id"]) else "dashboard"
+            return redirect(url_for(destination))
         if request.method == "POST":
             email=request.form.get("email","").strip().lower()[:254]; password=request.form.get("password","")
             with connect_db() as db: user=db.execute("SELECT id,email,password_hash,preferred_language FROM users WHERE email=?",(email,)).fetchone()
             if user and check_password_hash(user["password_hash"],password):
                 session.clear(); session["user_id"]=user["id"]; session["language"]=user["preferred_language"]; session.permanent=True
+                if needs_care_passport(user["id"]):
+                    return redirect(url_for("onboarding"))
                 dest=request.args.get("next","")
                 return redirect(dest if dest.startswith("/") and not dest.startswith("//") else url_for("dashboard"))
             flash("Email or password was not recognized.","danger")
@@ -296,6 +322,58 @@ def create_app(test_config=None):
         top_symptoms=[{"label": label, "count": count, "percent": round(count / max(1, symptom_counts.most_common(1)[0][1]) * 100)} for label, count in symptom_counts.most_common(6)]
         return render_template("dashboard.html",title="Dashboard",reports=reports[:5],total=len(reports),severity_rows=severity_rows,top_symptoms=top_symptoms,model_available=get_model().available)
 
+    def load_health_profile_record(user_id):
+        with connect_db() as db:
+            row = db.execute(
+                "SELECT profile_json,status,updated_at FROM health_profiles WHERE user_id=?",
+                (user_id,),
+            ).fetchone()
+        if not row or not row["profile_json"]:
+            return None
+        return {
+            "profile": summarize(json.loads(row["profile_json"])),
+            "status": row["status"],
+            "updated_at": row["updated_at"],
+        }
+
+    def load_health_profile(user_id):
+        record = load_health_profile_record(user_id)
+        return record["profile"] if record else None
+
+    @app.route("/onboarding", methods=["GET", "POST"])
+    @login_required
+    def onboarding():
+        if request.method == "POST":
+            profile_data, errors = parse_profile(request.form)
+            if errors:
+                for error in errors: flash(error, "danger")
+                p = profile_data
+            else:
+                with connect_db() as db:
+                    db.execute("""INSERT INTO health_profiles(user_id,profile_json,status,updated_at) VALUES(?,?,?,?)
+                        ON CONFLICT(user_id) DO UPDATE SET profile_json=excluded.profile_json,status='complete',updated_at=excluded.updated_at""",
+                        (g.user["id"], json.dumps(profile_data, ensure_ascii=False), "complete", utc_now()))
+                flash("Your Care Passport has been saved.", "success")
+                return redirect(url_for("dashboard"))
+        else:
+            p = {}
+            with connect_db() as db:
+                row = db.execute("SELECT profile_json FROM health_profiles WHERE user_id=?", (g.user["id"],)).fetchone()
+            if row and row["profile_json"]: p = json.loads(row["profile_json"])
+        meds_text = "\n".join(" | ".join(filter(None, [m.get("name", ""), m.get("dosage", ""), m.get("schedule", "")])) for m in p.get("medications", []))
+        return render_template("onboarding.html", title="Care Passport", p=p, meds_text=meds_text,
+            editing=bool(p), today=datetime.now(timezone.utc).date().isoformat(),
+            opts={"conditions": CONDITIONS, "family": FAMILY_HISTORY, "sex": SEX_OPTIONS,
+                  "blood_groups": BLOOD_GROUPS, "smoking": SMOKING, "alcohol": ALCOHOL, "activity": ACTIVITY})
+
+    @app.post("/onboarding/skip")
+    @login_required
+    def onboarding_skip():
+        with connect_db() as db:
+            db.execute("INSERT INTO health_profiles(user_id,profile_json,status,updated_at) VALUES(?,NULL,'skipped',?) ON CONFLICT(user_id) DO UPDATE SET status='skipped',updated_at=excluded.updated_at", (g.user["id"], utc_now()))
+        flash("You can create your Care Passport any time from Profile.", "info")
+        return redirect(url_for("dashboard"))
+
     HEALTH_SECTIONS = {
         "bmi": {"title": "BMI & body measurements", "entry_type": "measurement", "kind": "bmi", "unit": "BMI", "accent": "bmi"},
         "blood-pressure": {"title": "Blood pressure", "entry_type": "measurement", "kind": "blood_pressure", "unit": "mmHg", "accent": "blood-pressure"},
@@ -334,10 +412,61 @@ def create_app(test_config=None):
         if section == "medications": return item.get("name", "Medication")
         return "Appointment questions"
 
+    def passport_tracker_value(section, profile_record):
+        """Project current passport measurements and medicines into matching trackers."""
+        if not profile_record:
+            return None
+        profile = profile_record["profile"]
+        updated_at = profile_record["updated_at"]
+        date = updated_at[:10] if updated_at else ""
+        if section == "bmi" and profile.get("height_cm") and profile.get("weight_kg"):
+            item = {
+                "kind": "bmi",
+                "height_cm": profile["height_cm"],
+                "weight_kg": profile["weight_kg"],
+                "bmi": profile["bmi"],
+                "category": profile["bmi_category"],
+                "date": date,
+                "recorded_at": updated_at,
+            }
+            return {
+                "date": date,
+                "recorded_at": updated_at,
+                "value": health_display_value("bmi", item),
+                "source": "Care Passport",
+                "item": item,
+            }
+        if section == "medications" and (profile.get("medications") or profile.get("no_medications")):
+            medications = profile.get("medications", [])
+            count = len(medications)
+            value = (
+                "No regular medicines in Care Passport"
+                if profile.get("no_medications")
+                else f"{count} current medicine{'s' if count != 1 else ''} in Care Passport"
+            )
+            return {
+                "date": date,
+                "recorded_at": updated_at,
+                "value": value,
+                "source": "Care Passport",
+                "item": None,
+            }
+        return None
+
+    def passport_value_is_newest(passport_value, saved_entries):
+        if not passport_value:
+            return False
+        latest_saved_at = max(
+            (entry.get("recorded_at", "") for entry in saved_entries),
+            default="",
+        )
+        return passport_value["recorded_at"] >= latest_saved_at
+
     @app.get("/health-records")
     @login_required
     def health_records_page():
         entries = load_health_entries(g.user["id"])
+        profile_record = load_health_profile_record(g.user["id"])
         latest = {}
         counts = {key: 0 for key in HEALTH_SECTIONS}
         for section in HEALTH_SECTIONS:
@@ -345,6 +474,13 @@ def create_app(test_config=None):
             counts[section] = len(matches)
             if matches:
                 latest[section] = {"date": matches[0].get("date") or matches[0]["recorded_at"][:10], "value": health_display_value(section, matches[0])}
+            passport_value = passport_tracker_value(section, profile_record)
+            if passport_value_is_newest(passport_value, matches):
+                latest[section] = {
+                    "date": passport_value["date"],
+                    "value": passport_value["value"],
+                    "source": passport_value["source"],
+                }
         return render_template("health_records.html", title="Health records", sections=HEALTH_SECTIONS, latest=latest, counts=counts, today=datetime.now(timezone.utc).date().isoformat())
 
     @app.route("/health-records/<section>", methods=["GET", "POST"])
@@ -404,11 +540,21 @@ def create_app(test_config=None):
         all_entries = load_health_entries(g.user["id"])
         entries = [item for item in all_entries if section_matches(section, item)]
         entries.sort(key=lambda item: (item.get("date") or item["recorded_at"][:10], item["recorded_at"]))
+        profile_record = load_health_profile_record(g.user["id"])
+        passport_profile = profile_record["profile"] if profile_record else None
+        passport_bmi = passport_tracker_value("bmi", profile_record)
+        passport_medications = passport_profile.get("medications", []) if passport_profile else []
+        passport_has_medication_status = bool(
+            passport_profile and (passport_medications or passport_profile.get("no_medications"))
+        )
         numeric_key = {"bmi": "bmi", "blood-pressure": "systolic", "temperature": "value", "pulse": "bpm"}.get(section)
         graph_points = []
         graph_points_secondary = []
         if numeric_key and entries:
             chart_entries = entries[-12:]
+            if section == "bmi" and passport_value_is_newest(passport_bmi, entries):
+                chart_entries = entries[-11:] + [passport_bmi["item"]]
+                chart_entries.sort(key=lambda item: (item.get("date") or item["recorded_at"][:10], item["recorded_at"]))
             values = []
             secondary_values = []
             for item in chart_entries:
@@ -437,7 +583,14 @@ def create_app(test_config=None):
             activity_counts = [{"date": day, "count": count} for day, count in sorted(grouped.items())[-8:]]
         activity_max = max([row["count"] for row in activity_counts], default=1)
         latest = entries[-1] if entries else None
-        return render_template("health_record_detail.html", title=cfg["title"], section=section, config=cfg, entries=list(reversed(entries[-100:])), today=datetime.now(timezone.utc).date().isoformat(), graph_points=graph_points, graph_polyline=" ".join(point["coords"] for point in graph_points), graph_points_secondary=graph_points_secondary, graph_polyline_secondary=" ".join(point["coords"] for point in graph_points_secondary), severity_counts=severity_counts, activity_counts=activity_counts, activity_max=activity_max, latest=latest, latest_value=health_display_value(section, latest) if latest else None, total=len(entries))
+        latest_value = health_display_value(section, latest) if latest else None
+        latest_source = ""
+        passport_value = passport_tracker_value(section, profile_record)
+        if passport_value_is_newest(passport_value, entries):
+            latest = {"date": passport_value["date"], "recorded_at": passport_value["recorded_at"]}
+            latest_value = passport_value["value"]
+            latest_source = passport_value["source"]
+        return render_template("health_record_detail.html", title=cfg["title"], section=section, config=cfg, entries=list(reversed(entries[-100:])), today=datetime.now(timezone.utc).date().isoformat(), graph_points=graph_points, graph_polyline=" ".join(point["coords"] for point in graph_points), graph_points_secondary=graph_points_secondary, graph_polyline_secondary=" ".join(point["coords"] for point in graph_points_secondary), severity_counts=severity_counts, activity_counts=activity_counts, activity_max=activity_max, latest=latest, latest_value=latest_value, latest_source=latest_source, total=len(entries), passport_profile=passport_profile, passport_record=profile_record, passport_bmi=passport_bmi, passport_medications=passport_medications, passport_has_medication_status=passport_has_medication_status)
 
     @app.post("/health-records/<int:entry_id>/delete")
     @login_required
@@ -511,7 +664,8 @@ def create_app(test_config=None):
     @login_required
     def export_data():
         with connect_db() as db: rows=db.execute("SELECT title,report_json,created_at,updated_at FROM reports WHERE user_id=? ORDER BY created_at DESC",(g.user["id"],)).fetchall()
-        payload={"exported_at":utc_now(),"format_version":1,"reports":[{"title":r["title"],"report":json.loads(r["report_json"]),"created_at":r["created_at"],"updated_at":r["updated_at"]} for r in rows]}
+        health_profile = load_health_profile(g.user["id"])
+        payload={"exported_at":utc_now(),"format_version":2,"health_profile":health_profile,"reports":[{"title":r["title"],"report":json.loads(r["report_json"]),"created_at":r["created_at"],"updated_at":r["updated_at"]} for r in rows]}
         response=make_response(json.dumps(payload,ensure_ascii=False,indent=2)); response.headers["Content-Type"]="application/json; charset=utf-8"; response.headers["Content-Disposition"]="attachment; filename=carenote-data-export.json"; return response
 
     @app.post("/account/delete")
@@ -534,6 +688,7 @@ def create_app(test_config=None):
                 with connect_db() as db: db.execute("UPDATE users SET password_hash=? WHERE id=?",(generate_password_hash(new),g.user["id"]))
                 session.clear(); flash("Password changed. Sign in again.","success"); return redirect(url_for("login"))
         health_entries = load_health_entries(g.user["id"])
+        profile_record = load_health_profile_record(g.user["id"])
         health_summary = {}
         for section in HEALTH_SECTIONS:
             matches = [item for item in health_entries if section_matches(section, item)]
@@ -542,7 +697,16 @@ def create_app(test_config=None):
                 health_summary[section] = {"date": item.get("date") or item["recorded_at"][:10], "value": health_display_value(section, item), "count": len(matches)}
             else:
                 health_summary[section] = {"date": None, "value": "No records yet", "count": 0}
-        return render_template("profile.html",title="Profile",user=g.user,health_summary=health_summary,health_sections=HEALTH_SECTIONS)
+            passport_value = passport_tracker_value(section, profile_record)
+            if passport_value_is_newest(passport_value, matches):
+                health_summary[section] = {
+                    "date": passport_value["date"],
+                    "value": passport_value["value"],
+                    "count": len(matches),
+                    "source": passport_value["source"],
+                }
+        health_profile = profile_record["profile"] if profile_record else None
+        return render_template("profile.html",title="Profile",user=g.user,health_summary=health_summary,health_sections=HEALTH_SECTIONS,health_profile=health_profile)
 
     @app.get("/about-model")
     def about_model():

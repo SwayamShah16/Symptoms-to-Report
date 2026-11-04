@@ -58,3 +58,165 @@ h1 em{color:var(--coral);font-style:italic}
 .steps-row li{display:flex;gap:14px;background:#fff;border:1px solid var(--line);border-radius:20px;padding:20px}.steps-row b{width:36px;height:36px;border-radius:12px;background:var(--coral);color:#fff;display:grid;place-items:center;flex:none;font-family:Fraunces,Georgia,serif}.steps-row p{margin:4px 0 0;color:var(--muted);font-size:15px}
 @media(max-width:900px){.ob-layout{grid-template-columns:1fr}.passport:not(.passport-static){order:-1}.passport:not(.passport-static) .pp-details,.passport:not(.passport-static) .pp-foot,.passport:not(.passport-static) .pp-pulse{display:none}.ob-two,.steps-row{grid-template-columns:1fr}.cta-passport{flex-direction:column;align-items:flex-start}}
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
+
+/* Extend the Care Passport look to every shared screen and control. */
+:root {
+  --paper: #fffdfa;
+  --paper-deep: #f4eee6;
+  --coral-soft: #fff0e9;
+  --teal-soft: #edf6f2;
+}
+body {
+  color: var(--ink);
+  font-family: Inter, "Segoe UI", Roboto, Arial, sans-serif;
+}
+h1, h2, .auth-aside h1, .health-detail-heading h1 {
+  font-family: Fraunces, Georgia, "Times New Roman", serif;
+  letter-spacing: -.025em;
+}
+h1 em, .hero h1 em { color: var(--coral); font-style: italic; }
+.topbar {
+  border-bottom-color: var(--line);
+  box-shadow: 0 6px 24px rgba(15, 70, 64, .035);
+}
+.nav a:hover, .nav-button:hover, .text-link:hover { color: var(--coral); }
+.nav .nav-passport {
+  padding: 7px 12px;
+  border: 1px solid #d5e9e1;
+  border-radius: 999px;
+  background: var(--teal-soft);
+  color: var(--brand-dark);
+}
+.nav .nav-passport:hover {
+  border-color: var(--brand);
+  background: var(--brand);
+  color: #fff;
+}
+.language-form select {
+  border-color: var(--line);
+  border-radius: 999px;
+  background: var(--paper);
+}
+.page-shell { max-width: 1320px; }
+.footer {
+  border-top-color: var(--line);
+  background: rgba(251, 247, 242, .88);
+}
+.button:not(.button-secondary):not(.button-danger) {
+  background: linear-gradient(135deg, var(--brand), #17897d);
+  border-color: var(--brand);
+  box-shadow: 0 7px 16px rgba(15, 107, 99, .16);
+}
+.button:not(.button-secondary):not(.button-danger):hover {
+  background: linear-gradient(135deg, var(--brand-dark), var(--brand));
+  box-shadow: 0 10px 22px rgba(15, 107, 99, .22);
+}
+.button-secondary {
+  background: var(--paper);
+  border-color: var(--line);
+}
+.eyebrow { color: var(--coral); }
+.panel, .stat-card, .feature-card, .auth-card, .wizard-main,
+.wizard-aside, .review-card, .notice-card, .health-tool-card,
+.health-log-history, .health-trend-panel, .health-detail-form,
+.model-stats, .danger-zone {
+  border-color: var(--line);
+  border-radius: 20px;
+  box-shadow: 0 10px 28px rgba(15, 70, 64, .055);
+}
+.panel, .stat-card, .feature-card, .auth-card, .wizard-main,
+.wizard-aside, .review-card, .notice-card, .health-tool-card,
+.health-log-history, .health-trend-panel, .health-detail-form,
+.model-stats, .danger-zone, .health-hub-card, .profile-health-item {
+  background-color: var(--paper);
+}
+.feature-card, .stat-card, .health-hub-card, .profile-health-item,
+.report-row, .health-log-row, .quick-links a {
+  transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+}
+.feature-card:hover, .stat-card:hover, .health-hub-card:hover,
+.profile-health-item:hover, .report-row:hover, .quick-links a:hover {
+  border-color: #d8b7a7;
+  box-shadow: 0 14px 30px rgba(15, 70, 64, .11);
+  transform: translateY(-2px);
+}
+.feature-icon, .stat-icon, .aside-icon, .health-tool-icon,
+.health-hub-card .health-tool-icon {
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.7);
+}
+.form-stack input, .form-stack select, .form-stack textarea,
+.search-row input, .health-log-form input, .health-log-form select,
+.health-log-form textarea, .health-detail-form input,
+.health-detail-form select, .health-detail-form textarea,
+.symptom-search input {
+  border-color: var(--line);
+  border-radius: 12px;
+  background-color: var(--paper);
+}
+input:focus, select:focus, textarea:focus {
+  border-color: var(--brand);
+  outline: 3px solid rgba(232, 114, 92, .16);
+  outline-offset: 1px;
+}
+:focus-visible { outline: 3px solid var(--coral); outline-offset: 3px; }
+.wizard-aside {
+  background: linear-gradient(155deg, var(--teal-deep), #115a53);
+  border-color: transparent;
+  color: #f4efe6;
+}
+.wizard-aside > p, .wizard-aside .aside-check small { color: #bfe0d9; }
+.wizard-aside .aside-icon, .step-number {
+  background: var(--coral);
+  color: #fff;
+}
+.wizard-progress .progress-step.active > span,
+.wizard-progress .progress-step.complete > span,
+.wizard-step.active .symptom-option:has(input:checked),
+.category-tab.active, .selected-count strong {
+  background-color: var(--brand);
+  border-color: var(--brand);
+}
+.symptom-option, .choice-card, .report-row, .health-log-row,
+.health-report-grid > div, .metric-grid > div, .safety-list > div {
+  border-color: var(--line);
+  background-color: var(--paper);
+}
+.symptom-option:has(input:checked), .choice-card:has(input:checked) {
+  border-color: var(--brand);
+  background: var(--teal-soft);
+}
+.review-safety, .info-panel, .health-records-intro,
+.health-latest-callout, .ob-privacy {
+  background: var(--teal-soft);
+  border-color: #d5e9e1;
+}
+.urgent-panel, .flash-danger { border-color: #efc8bb; }
+.flash-success { background: var(--teal-soft); border-color: #d5e9e1; }
+.flash-warning { background: #fff5df; border-color: #f1dfb6; }
+.cta-passport {
+  background: linear-gradient(120deg, var(--coral-soft), var(--mint));
+  border-color: var(--line);
+  border-radius: 20px;
+}
+.report-file, .profile-avatar { background: var(--coral-soft); color: var(--coral); }
+.severity-mild { background: #e3f2e8; color: #28724c; }
+.severity-moderate { background: #fff1d7; color: #94621c; }
+.severity-severe { background: #ffebe5; color: #a44736; }
+.empty-art { color: var(--coral); background: var(--coral-soft); }
+.bar-track span, .severity-graph-track span {
+  background: linear-gradient(90deg, var(--brand), #66b6a4);
+}
+.history-chips span, .symptom-chip { background: var(--teal-soft); color: var(--brand-dark); }
+.health-hub-count { background: var(--paper-deep); color: var(--muted); }
+.health-hub-latest { background: #f7f3ed; }
+.disclaimer-band {
+  border-color: #eadbd0;
+  background: linear-gradient(110deg, var(--coral-soft), var(--teal-soft));
+}
+@media (max-width: 760px) {
+  .page-shell { padding-top: 24px; }
+  .panel, .auth-card, .wizard-main, .wizard-aside { border-radius: 17px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
+}
